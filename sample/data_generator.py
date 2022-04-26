@@ -30,15 +30,17 @@ class Generator:
         columns = [f'feature_{i}' for i in range(self.dimensions)]
         columns.append('treatment')
         columns.append('outcome')
+        columns.append('treatment_effect')
         df = pd.DataFrame([], columns=columns)
         for i in range(number_of_samples):
-            features, treatment, outcome = self.generate_row()
+            features, treatment, outcome, treatment_effect = self.generate_row()
             features.append(treatment)
             features.append(outcome)
+            features.append(treatment_effect)
             df.loc[len(df.index)] = features
         if save_data:
             self.save_data(df)
-        return df
+        return select_features(df, self.dimensions), df['treatment'], df['outcome'], df['treatment_effect']
 
     def generate_row(self):
         features = []
@@ -46,9 +48,10 @@ class Generator:
             features.append(self.generate_feature(dimension))
         # W = bernoulli(e(x))
         treatment = 1 if np.random.random() <= self.treatment_propensity(features) else 0
+        treatment_effect = (treatment - 0.5) * self.treatment_effect(features)
         # Y = m(x) + (W - 0.5) * t(x) + noise
-        outcome = self.main_effect(features) + (treatment - 0.5) * self.treatment_effect(features) + self.noise()
-        return features, treatment, outcome
+        outcome = self.main_effect(features) + treatment_effect + self.noise()
+        return features, treatment, outcome, treatment_effect
 
     def generate_feature(self, index):
         if len(self.distributions) == 1:
@@ -61,6 +64,8 @@ class Generator:
             os.mkdir(directory)
         df.to_csv(directory + f'/generated_data{time.ctime()}.csv'.replace(' ', '_').replace(':', '-'))
 
+def select_features(df, dim):
+    return df[[f'feature_{i}' for i in range(dim)]]
 
 if __name__ == '__main__':
     samples = 500
