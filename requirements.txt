@@ -1,0 +1,6 @@
+numpy
+scikit-learn
+econml
+pandas
+scipy
+typing

@@ -1,7 +1,13 @@
+# Ignore data dumps
+sample/data
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# PyCharm
+.idea
 
 # C extensions
 *.so
