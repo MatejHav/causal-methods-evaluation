@@ -1,5 +1,6 @@
 # Ignore data dumps
 sample/data
+sample/experiments
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

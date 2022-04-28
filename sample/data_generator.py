@@ -22,9 +22,10 @@ class Generator:
         self.treatment_effect = treatment_effect
         self.treatment_propensity = treatment_propensity
         self.noise = noise
-
         self.dimensions = dimensions
         self.distributions = distributions
+        self.directory: str = f'data/data_dump_{self.__hash__()}'
+        self.generated_files: Dict[str, List[str]] = {'data': [], 'graphs': []}
 
     def generate_data(self, number_of_samples: int, save_data: bool = True, show_graphs: bool = False,
                       save_graphs: bool = False):
@@ -46,20 +47,9 @@ class Generator:
         if save_data:
             self.save_data(df)
         if show_graphs or save_graphs:
-            # Show the first two features and their effect -> Coverage
-            feature_one = df['feature_0']
-            feature_two = df['feature_1']
-            maximal = df['treatment_effect'].max()
-            minimal = df['treatment_effect'].min()
-            color_function = lambda i: [1,
-                                        min(1, 1.1 * (df.iloc[i]['treatment_effect'] - minimal) / (maximal - minimal + 0.01)),
-                                        0.95 * (df.iloc[i]['treatment_effect'] - minimal) / (maximal - minimal + 0.01)]
-            plt.scatter(feature_one, feature_two, c=[color_function(i) for i in df.index])
+            self.create_graphs(df)
             if save_graphs:
-                directory = f'data/data_dump_{self.__hash__()}'
-                if not os.path.exists(directory):
-                    os.mkdir(directory)
-                plt.savefig(directory + f'/coverage_{time.ctime()}'.replace(' ', '_').replace(':', '-'))
+                self.save_graphs()
             if show_graphs:
                 plt.show()
         return select_features(df, self.dimensions), df['treatment'], df['outcome'], df['main_effect'], df['treatment_effect'], df['propensity']
@@ -82,25 +72,35 @@ class Generator:
             return self.distributions[0]()
         return self.distributions[index]()
 
+    def create_graphs(self, df):
+        self.create_coverage_graph(df)
+
+    def create_coverage_graph(self, df):
+        plt.clf()
+        feature_one = df['feature_0']
+        feature_two = df['feature_1']
+        maximal = df['treatment_effect'].max()
+        minimal = df['treatment_effect'].min()
+        color_function = lambda i: [1,
+                                    min(1,
+                                        1.1 * (df.iloc[i]['treatment_effect'] - minimal) / (maximal - minimal + 0.01)),
+                                    0.95 * (df.iloc[i]['treatment_effect'] - minimal) / (maximal - minimal + 0.01)]
+        plt.scatter(feature_one, feature_two, c=[color_function(i) for i in df.index])
+
+    def save_graphs(self):
+        if not os.path.exists(self.directory):
+            os.mkdir(self.directory)
+        filename = f'/coverage_{time.ctime()}'.replace(' ', '_').replace(':', '-')
+        self.generated_files['graphs'].append(filename)
+        plt.savefig(self.directory + filename)
+
     def save_data(self, df):
-        directory = f'data/data_dump_{self.__hash__()}'
-        if not os.path.exists(directory):
-            os.mkdir(directory)
-        df.to_csv(directory + f'/generated_data{time.ctime()}.csv'.replace(' ', '_').replace(':', '-'))
+        if not os.path.exists(self.directory):
+            os.mkdir(self.directory)
+        filename = f'/generated_data{time.ctime()}.csv'.replace(' ', '_').replace(':', '-')
+        self.generated_files['data'].append(filename)
+        df.to_csv(self.directory + filename)
+
 
 def select_features(df, dim):
     return df[[f'feature_{i}' for i in range(dim)]]
-
-if __name__ == '__main__':
-    samples = 5000
-    main_effect = lambda x: 2 * x[0] - 1
-    # treatment_effect = lambda x: x[0]
-    treatment_effect = lambda x: (1 + 1 / (1 + np.exp(-20 * (x[0] - 1 / 3)))) * (
-                1 + 1 / (1 + np.exp(-20 * (x[1] - 1 / 3))))
-    treatment_propensity = lambda x: (1 + beta.pdf(x[0], 2, 4)) / 4
-    noise = lambda: 0.05 * np.random.normal(0, 1)
-    dimensions = 5
-    distributions = [lambda: np.random.random()]
-    sample_generator = Generator(main_effect, treatment_effect, treatment_propensity, noise, dimensions, distributions)
-    sample_generator.generate_data(samples, save_data=True, save_graphs=True)
-

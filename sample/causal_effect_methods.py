@@ -28,6 +28,14 @@ class CausalMethod(ABC):
     def train(self, x, y, w):
         pass
 
+    @abstractmethod
+    def create_base_truth(self, outcome, main_effect, treatment_effect, treatment_propensity):
+        pass
+
+    @abstractmethod
+    def __str__(self):
+        pass
+
 
 class CausalForest(CausalMethod):
 
@@ -44,8 +52,14 @@ class CausalForest(CausalMethod):
     def estimate_causal_effect(self, x):
         return self.forest.effect(x)
 
+    def create_base_truth(self, outcome, main_effect, treatment_effect, treatment_propensity):
+        return treatment_effect
+
     def compute_cate(self, features):
         return self.forest.cate_feature_names(features)
+
+    def __str__(self):
+        return 'causal_forest'
 
 class DragonNet(CausalMethod):
 
@@ -76,39 +90,13 @@ class DragonNet(CausalMethod):
     def estimate_causal_effect(self, x):
         return self.dragonnet.predict(x)
 
+    def create_base_truth(self, outcome, main_effect, treatment_effect, treatment_propensity):
+        base_truth = pd.DataFrame(outcome).join(main_effect)
+        base_truth = base_truth.join(treatment_effect)
+        base_truth = base_truth.join(treatment_propensity)
+        return base_truth
 
-if __name__ == '__main__':
-    main_effect = lambda x: 2 * x[0] - 1
-    treatment_effect = lambda x: (1 + 1 / (1 + np.exp(-20 * (x[0] - 1 / 3)))) * (
-            1 + 1 / (1 + np.exp(-20 * (x[1] - 1 / 3))))
-    treatment_propensity = lambda x: (1 + beta.pdf(x[0], 2, 4)) / 4
-    noise = lambda: 0.05 * np.random.normal(0, 1)
-    dimensions = 5
-    distributions = [lambda: np.random.random()]
-    sample_generator = data_generator.Generator(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
-                                                distributions)
-    # X, W, y, true_effect = load_data_from_file('data/full_gen/generated_dataTue_Apr_26_14-38-31_2022.csv')
-    X, W, y, main_effect, true_effect, propensity = load_data_from_generator(sample_generator)
-    method = DragonNet(dimensions)
-    dimensions = len(X.columns)
-    X = X.join(W)
-    X = X.join(y)
-    base_truth = pd.DataFrame(y).join(main_effect)
-    base_truth = base_truth.join(true_effect)
-    base_truth = base_truth.join(propensity)
-    X_train, X_test, y_train, y_test = train_test_split(X, base_truth, test_size=0.25, random_state=42)
-    # For training I only want to see the overall outcome
-    # So I use overall outcome for training rather than the true effect
-    method.train(select_features(X_train, dimensions), y_train, X_train['treatment'])
+    def __str__(self):
+        return 'dragonnet'
 
-    # I want to estimate the effect of treatment on the outcome, so I have to test against the real effect
-    # (so no outside influences other than treatment)
-    results = method.estimate_causal_effect(select_features(X_test, dimensions))
-    score = 0
-    convert = {0: 'outcome', 1: 'main_effect', 2:'treatment_effect', 3:'propensity'}
-    for i in range(len(results)):
-        for j in range(4):
-            score += (y_test.iloc[i][convert[j]] - results[i][j]) ** 2
-    score = score / (4 * len(results))
-    print(f'MSE: {score}')
 
