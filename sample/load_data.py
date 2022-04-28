@@ -11,8 +11,8 @@ def load_data_from_generator(generator: data_generator.Generator, samples=500):
 
 def load_data_from_file(csv_file: str):
     df = pd.read_csv(csv_file)
-    dimensions = len(df.columns) - 4
-    return data_generator.select_features(df, dimensions), df['treatment'], df['outcome'], df['treatment_effect']
+    dimensions = len(df.columns) - 6
+    return data_generator.select_features(df, dimensions), df['treatment'], df['outcome'], df['main_effect'], df['treatment_effect'], df['propensity']
 
 
 if __name__ == '__main__':
