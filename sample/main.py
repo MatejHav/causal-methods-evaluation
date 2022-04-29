@@ -3,7 +3,7 @@ from builders import Experiment
 def main():
     dimensions = 5
     Experiment().add_causal_forest()\
-        .add_dragonnet(dimensions)\
+        .add_causal_forest(honest=False)\
         .add_mean_squared_error()\
         .add_absolute_error()\
         .add_all_effects_generator(dimensions, sample_size=2000)\

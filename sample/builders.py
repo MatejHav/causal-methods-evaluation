@@ -60,11 +60,11 @@ class Experiment:
 
     # MODELS
 
-    def add_causal_forest(self, number_of_trees=100, min_leaf_size=10):
-        return self.add_custom_model(CausalForest(number_of_trees, k=min_leaf_size))
+    def add_causal_forest(self, number_of_trees=100, min_leaf_size=10, honest: bool=True):
+        return self.add_custom_model(CausalForest(number_of_trees, k=min_leaf_size, honest=honest, id = len(self.models)))
 
     def add_dragonnet(self, dimensions):
-        return self.add_custom_model(DragonNet(dimensions))
+        return self.add_custom_model(DragonNet(dimensions, id = len(self.models)))
 
     # METRICS
 
@@ -84,11 +84,11 @@ class Experiment:
                                   treatment_effect: Callable[[List[float]], float],
                                   treatment_propensity: Callable[[List[float]], float],
                                   noise: Callable[[], float], dimensions: int,
-                                  distributions=None, sample_size: int = 500):
+                                  distributions=None, sample_size: int = 500, name: str=None):
         if distributions is None:
             distributions = [np.random.random]
         generator = data_generator.Generator(main_effect, treatment_effect, treatment_propensity, noise,
-                                             dimensions=dimensions, distributions=distributions)
+                                             dimensions=dimensions, distributions=distributions, name=name)
         return self.add_custom_generator(generator, sample_size=sample_size)
 
     def add_all_effects_generator(self, dimensions: int, sample_size: int = 500):
@@ -98,7 +98,7 @@ class Experiment:
         treatment_propensity = lambda x: (1 + beta.pdf(x[0], 2, 4)) / 4
         noise = lambda: 0.05 * np.random.normal(0, 1)
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
-                                              sample_size=sample_size)
+                                              sample_size=sample_size, name='all_effects')
 
     def add_no_treatment_effect_generator(self, dimensions: int, sample_size: int = 500):
         main_effect = lambda x: 2 * x[0] - 1
@@ -106,7 +106,7 @@ class Experiment:
         treatment_propensity = lambda x: (1 + beta.pdf(x[0], 2, 4)) / 4
         noise = lambda: 0.05 * np.random.normal(0, 1)
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
-                                              sample_size=sample_size)
+                                              sample_size=sample_size, name='no_treatment_effect')
 
     def add_only_treatment_effect_generator(self, dimensions: int, sample_size: int = 500):
         main_effect = lambda x: 0
@@ -115,7 +115,7 @@ class Experiment:
         treatment_propensity = lambda x: 0.5
         noise = lambda: 0.05 * np.random.normal(0, 1)
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
-                                              sample_size=sample_size)
+                                              sample_size=sample_size, name='only_treatment_effect')
 
     def add_simple_effects_generator(self, dimensions: int, sample_size: int = 500):
         main_effect = lambda x: 3 - (2 * x[0] + x[1])
@@ -123,7 +123,7 @@ class Experiment:
         treatment_propensity = lambda x: x[1]
         noise = lambda: 0.05 * np.random.normal(0, 1)
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
-                                              sample_size=sample_size)
+                                              sample_size=sample_size, name='simple_effects')
 
     def add_small_treatment_propensity_generator(self, dimensions: int, sample_size: int = 500):
         main_effect = lambda x: 3 - (2 * x[0] + x[1])
@@ -131,7 +131,7 @@ class Experiment:
         treatment_propensity = lambda x: 0.1 * x[1]
         noise = lambda: 0.05 * np.random.normal(0, 1)
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
-                                              sample_size=sample_size)
+                                              sample_size=sample_size, name='small_treatment_propensity')
 
     def add_full_treatment_effect_generator(self, dimensions: int, sample_size: int = 500):
         main_effect = lambda x: 3 - (2 * x[0] + x[1])
@@ -139,4 +139,4 @@ class Experiment:
         treatment_propensity = lambda x: x[1]
         noise = lambda: 0.05 * np.random.normal(0, 1)
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
-                                              sample_size=sample_size)
+                                              sample_size=sample_size, name='constant_treatment_effect')

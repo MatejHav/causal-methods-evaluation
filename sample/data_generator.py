@@ -15,16 +15,18 @@ class Generator:
                  treatment_effect: Callable[[List[float]], float],
                  treatment_propensity: Callable[[List[float]], float],
                  noise: Callable[[], float],
-                 dimensions: int, distributions: [Callable[[], float]]):
+                 dimensions: int, distributions: [Callable[[], float]], name: str = None):
         # Either have 1 distribution applied on all features, or have a specific distribution per feature
         assert len(distributions) == 1 or len(distributions) == dimensions
+        if name is None:
+            name = self.__hash__()
         self.main_effect = main_effect
         self.treatment_effect = treatment_effect
         self.treatment_propensity = treatment_propensity
         self.noise = noise
         self.dimensions = dimensions
         self.distributions = distributions
-        self.directory: str = f'data/data_dump_{self.__hash__()}'
+        self.directory: str = f'data/data_dump_{name}'
         self.generated_files: Dict[str, List[str]] = {'data': [], 'graphs': []}
 
     def generate_data(self, number_of_samples: int, save_data: bool = True, show_graphs: bool = False,

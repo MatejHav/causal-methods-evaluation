@@ -1,11 +1,15 @@
 import tensorflow as tf
+
+from sample.other_methods.dragonnet.experiment.models import regression_loss, binary_classification_loss, \
+    treatment_accuracy, track_epsilon
+
 tf.compat.v1.disable_eager_execution()
 import keras.backend as K
 from econml.dml import CausalForestDML as EconCausalForest
 from abc import abstractmethod, ABC
 
 from keras.callbacks import ReduceLROnPlateau, EarlyStopping, TerminateOnNaN
-from keras.optimizer_v1 import Adam
+from keras.optimizer_v1 import Adam, SGD
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_error as mse
 from load_data import *
@@ -13,9 +17,6 @@ from data_generator import select_features
 from sample.other_methods.dragonnet.experiment.ihdp_main import make_dragonnet
 from keras.losses import *
 from keras.metrics import *
-
-from sample.other_methods.dragonnet.experiment.models import regression_loss, binary_classification_loss, \
-    treatment_accuracy, track_epsilon, dragonnet_loss_binarycross
 
 
 class CausalMethod(ABC):
@@ -43,9 +44,10 @@ class CausalMethod(ABC):
 
 class CausalForest(CausalMethod):
 
-    def __init__(self, number_of_trees, method_effect='auto', method_predict='auto', k=1):
+    def __init__(self, number_of_trees, method_effect='auto', method_predict='auto', k=1, honest:bool = True, id: int = 0):
         self.forest = EconCausalForest(model_t=method_effect, model_y=method_predict, n_estimators=number_of_trees,
-                                       min_samples_leaf=k, criterion='mse', random_state=42)
+                                       min_samples_leaf=k, criterion='mse', random_state=42, honest=honest)
+        self.id = id
 
     def train(self, x, y, w):
         self.forest.fit(Y=y,
@@ -63,16 +65,17 @@ class CausalForest(CausalMethod):
         return treatment_effect
 
     def __str__(self):
-        return 'causal_forest'
+        return f'causal_forest_{self.id}'
 
 class DragonNet(CausalMethod):
 
     # Not sure what reg_l2 is but I base it on DragonNet implementation
-    def __init__(self, dimensions, reg_l2=0.01):
+    def __init__(self, dimensions, reg_l2=0.01, id: int = 0):
         self.dragonnet = make_dragonnet(dimensions, reg_l2)
+        self.id = id
 
     def train(self, x, y, w):
-        metrics = [mean_squared_error]
+        metrics = [regression_loss, binary_classification_loss, treatment_accuracy, track_epsilon]
 
         self.dragonnet.compile(
             optimizer=Adam(lr=1e-3),
@@ -91,6 +94,22 @@ class DragonNet(CausalMethod):
                       epochs=100,
                       batch_size=64, verbose=0)
 
+        sgd_callbacks = [
+            TerminateOnNaN(),
+            EarlyStopping(monitor='val_loss', patience=40, min_delta=0.),
+            ReduceLROnPlateau(monitor='loss', factor=0.5, patience=5, verbose=0, mode='auto',
+                              min_delta=0., cooldown=0, min_lr=0)
+        ]
+
+        sgd_lr = 1e-5
+        momentum = 0.9
+        self.dragonnet.compile(optimizer=SGD(lr=sgd_lr, momentum=momentum, nesterov=True), loss=mean_squared_error,
+                          metrics=metrics)
+        self.dragonnet.fit(x=x, y=y, callbacks=sgd_callbacks,
+                      validation_split=0.5,
+                      epochs=300,
+                      batch_size=64, verbose=0)
+
     def estimate_causal_effect(self, x):
         results = self.dragonnet.predict(x)
         return results
@@ -105,6 +124,6 @@ class DragonNet(CausalMethod):
         return self.create_training_truth(outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise)
 
     def __str__(self):
-        return 'dragonnet'
+        return f'dragonnet_{self.id}'
 
 
