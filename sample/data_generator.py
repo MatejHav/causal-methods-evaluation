@@ -35,14 +35,20 @@ class Generator:
         columns.append('main_effect')
         columns.append('treatment_effect')
         columns.append('propensity')
+        columns.append('y0')
+        columns.append('y1')
+        columns.append('noise')
         df = pd.DataFrame([], columns=columns)
         for i in range(number_of_samples):
-            features, treatment, outcome, main_effect, treatment_effect, propensity = self.generate_row()
+            features, treatment, outcome, main_effect, treatment_effect, propensity, y0, y1, noise = self.generate_row()
             features.append(treatment)
             features.append(outcome)
             features.append(main_effect)
             features.append(treatment_effect)
             features.append(propensity)
+            features.append(y0)
+            features.append(y1)
+            features.append(noise)
             df.loc[len(df.index)] = features
         if save_data:
             self.save_data(df)
@@ -52,7 +58,8 @@ class Generator:
                 self.save_graphs()
             if show_graphs:
                 plt.show()
-        return select_features(df, self.dimensions), df['treatment'], df['outcome'], df['main_effect'], df['treatment_effect'], df['propensity']
+        return select_features(df, self.dimensions), df['treatment'], df['outcome'], df['main_effect'], \
+               df['treatment_effect'], df['propensity'], df['y0'], df['y1'], df['noise']
 
     def generate_row(self):
         features = []
@@ -61,11 +68,14 @@ class Generator:
         # W = bernoulli(e(x))
         propensity = self.treatment_propensity(features)
         treatment = 1 if np.random.random() <= propensity else 0
-        treatment_effect = self.treatment_effect(features) # if treatment == 1 else 0
+        treatment_effect = self.treatment_effect(features)
         # Y = m(x) + (W - 0.5) * t(x) + noise
         main_effect = self.main_effect(features)
-        outcome = main_effect + treatment_effect + self.noise()
-        return features, treatment, outcome, main_effect, treatment_effect, propensity
+        noise = self.noise()
+        outcome = main_effect + (treatment - 0.5) * treatment_effect + noise
+        y0 = main_effect - 0.5 * treatment_effect + noise
+        y1 = main_effect + 0.5 * treatment_effect + noise
+        return features, treatment, outcome, main_effect, treatment_effect, propensity, y0, y1, noise
 
     def generate_feature(self, index):
         if len(self.distributions) == 1:
@@ -88,19 +98,19 @@ class Generator:
         plt.scatter(feature_one, feature_two, c=[color_function(i) for i in df.index])
 
     def save_graphs(self):
-        if not os.path.exists(self.directory):
-            os.mkdir(self.directory)
+        os.makedirs(self.directory, exist_ok=True)
         filename = f'/coverage_{time.ctime()}'.replace(' ', '_').replace(':', '-')
         self.generated_files['graphs'].append(filename)
         plt.savefig(self.directory + filename)
 
     def save_data(self, df):
-        if not os.path.exists(self.directory):
-            os.mkdir(self.directory)
+        os.makedirs(self.directory, exist_ok=True)
         filename = f'/generated_data{time.ctime()}.csv'.replace(' ', '_').replace(':', '-')
         self.generated_files['data'].append(filename)
         df.to_csv(self.directory + filename)
 
 
-def select_features(df, dim):
+def select_features(df, dim=-1):
+    if dim == -1:
+        return df[[name for name in df.columns if 'feature' in name]]
     return df[[f'feature_{i}' for i in range(dim)]]
