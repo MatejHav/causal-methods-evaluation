@@ -15,6 +15,8 @@ class Generator:
                  treatment_effect: Callable[[List[float]], float],
                  treatment_propensity: Callable[[List[float]], float],
                  noise: Callable[[], float],
+                 treatment_function: Callable[[float, float], float],
+                 outcome_function: Callable[[float, float, float, float], float],
                  dimensions: int, distributions: [Callable[[], float]], name: str = None):
         # Either have 1 distribution applied on all features, or have a specific distribution per feature
         assert len(distributions) == 1 or len(distributions) == dimensions
@@ -23,6 +25,8 @@ class Generator:
         self.main_effect = main_effect
         self.treatment_effect = treatment_effect
         self.treatment_propensity = treatment_propensity
+        self.treatment_function = treatment_function
+        self.outcome_function = outcome_function
         self.noise = noise
         self.dimensions = dimensions
         self.distributions = distributions
@@ -69,14 +73,15 @@ class Generator:
             features.append(self.generate_feature(dimension))
         # W = bernoulli(e(x))
         propensity = self.treatment_propensity(features)
-        treatment = 1 if np.random.random() <= propensity else 0
+        treatment_noise = self.noise()
+        treatment = self.treatment_function(propensity, treatment_noise)
         treatment_effect = self.treatment_effect(features)
         # Y = m(x) + (W - 0.5) * t(x) + noise
         main_effect = self.main_effect(features)
         noise = self.noise()
-        outcome = main_effect + (treatment - 0.5) * treatment_effect + noise
-        y0 = main_effect - 0.5 * treatment_effect + noise
-        y1 = main_effect + 0.5 * treatment_effect + noise
+        outcome = self.outcome_function(main_effect, treatment, treatment_effect, noise)
+        y0 = self.outcome_function(main_effect, 0, treatment_effect, noise)
+        y1 = self.outcome_function(main_effect, 1, treatment_effect, noise)
         return features, treatment, outcome, main_effect, treatment_effect, propensity, y0, y1, noise
 
     def generate_feature(self, index):

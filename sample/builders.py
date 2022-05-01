@@ -14,6 +14,7 @@ class Experiment:
         self.models: List[CausalMethod] = []
         self.metrics: Dict[str, Callable[[List[float]], float]] = {}
         self.seed = np.random.seed(seed)
+        self._set_defaults()
         self.directory = f'experiments/experiment_{seed if seed is not None else f"randomized{self.__hash__()}"}'
         os.makedirs(self.directory, exist_ok=True)
 
@@ -80,63 +81,137 @@ class Experiment:
 
     # DATA GENERATORS
 
+    def _set_defaults(self):
+        self.main_effect = lambda x: 2 * x[0] - 1
+        self.treatment_effect = lambda x: (1 + 1 / (1 + np.exp(-20 * (x[0] - 1 / 3)))) * (
+                1 + 1 / (1 + np.exp(-20 * (x[1] - 1 / 3))))
+        self.treatment_propensity = lambda x: (1 + beta.pdf(x[0], 2, 4)) / 4
+        self.noise = lambda: 0.05 * np.random.normal(0, 1)
+        self.treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
+        self.outcome_function = lambda main, treat, treat_eff, noise: main + (treat - 0.5) * treat_eff + noise
+
     def add_custom_generated_data(self, main_effect: Callable[[List[float]], float],
                                   treatment_effect: Callable[[List[float]], float],
                                   treatment_propensity: Callable[[List[float]], float],
                                   noise: Callable[[], float], dimensions: int,
+                                  treatment_function: Callable[[float, float], float],
+                                  outcome_function: Callable[[float, float, float, float], float],
                                   distributions=None, sample_size: int = 500, name: str=None):
         if distributions is None:
             distributions = [np.random.random]
-        generator = data_generator.Generator(main_effect, treatment_effect, treatment_propensity, noise,
+        generator = data_generator.Generator(main_effect=main_effect, treatment_effect=treatment_effect,
+                                             treatment_propensity=treatment_propensity, noise=noise,
+                                             treatment_function=treatment_function, outcome_function=outcome_function,
                                              dimensions=dimensions, distributions=distributions, name=name)
         return self.add_custom_generator(generator, sample_size=sample_size)
 
     def add_all_effects_generator(self, dimensions: int, sample_size: int = 500):
-        main_effect = lambda x: 2 * x[0] - 1
-        treatment_effect = lambda x: (1 + 1 / (1 + np.exp(-20 * (x[0] - 1 / 3)))) * (
-                1 + 1 / (1 + np.exp(-20 * (x[1] - 1 / 3))))
-        treatment_propensity = lambda x: (1 + beta.pdf(x[0], 2, 4)) / 4
-        noise = lambda: 0.05 * np.random.normal(0, 1)
+        main_effect = self.main_effect
+        treatment_effect = self.treatment_effect
+        treatment_propensity = self.treatment_propensity
+        noise = self.noise
+        treatment_function = self.treatment_function
+        outcome_function = self.outcome_function
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
+                                              treatment_function, outcome_function,
                                               sample_size=sample_size, name='all_effects')
 
     def add_no_treatment_effect_generator(self, dimensions: int, sample_size: int = 500):
-        main_effect = lambda x: 2 * x[0] - 1
+        main_effect = self.main_effect
         treatment_effect = lambda x: 0
-        treatment_propensity = lambda x: (1 + beta.pdf(x[0], 2, 4)) / 4
-        noise = lambda: 0.05 * np.random.normal(0, 1)
+        treatment_propensity = self.treatment_propensity
+        noise = self.noise
+        treatment_function = self.treatment_function
+        outcome_function = self.outcome_function
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
+                                              treatment_function, outcome_function,
                                               sample_size=sample_size, name='no_treatment_effect')
 
     def add_only_treatment_effect_generator(self, dimensions: int, sample_size: int = 500):
         main_effect = lambda x: 0
-        treatment_effect = lambda x: (1 + 1 / (1 + np.exp(-20 * (x[0] - 1 / 3)))) * (
-                1 + 1 / (1 + np.exp(-20 * (x[1] - 1 / 3))))
+        treatment_effect = self.treatment_effect
         treatment_propensity = lambda x: 0.5
-        noise = lambda: 0.05 * np.random.normal(0, 1)
+        noise = self.noise
+        treatment_function = self.treatment_function
+        outcome_function = self.outcome_function
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
+                                              treatment_function, outcome_function,
                                               sample_size=sample_size, name='only_treatment_effect')
 
     def add_simple_effects_generator(self, dimensions: int, sample_size: int = 500):
         main_effect = lambda x: 3 - (2 * x[0] + x[1])
         treatment_effect = lambda x: 1 - x[0]
         treatment_propensity = lambda x: x[1]
-        noise = lambda: 0.05 * np.random.normal(0, 1)
+        noise = self.noise
+        treatment_function = self.treatment_function
+        outcome_function = self.outcome_function
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
+                                              treatment_function, outcome_function,
                                               sample_size=sample_size, name='simple_effects')
 
     def add_small_treatment_propensity_generator(self, dimensions: int, sample_size: int = 500):
-        main_effect = lambda x: 3 - (2 * x[0] + x[1])
-        treatment_effect = lambda x: 1 - x[0]
-        treatment_propensity = lambda x: 0.1 * x[1]
-        noise = lambda: 0.05 * np.random.normal(0, 1)
+        main_effect = self.main_effect
+        treatment_effect = self.treatment_effect
+        treatment_propensity = lambda x: 0.1 * self.treatment_propensity(x)
+        noise = self.noise
+        treatment_function = self.treatment_function
+        outcome_function = self.outcome_function
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
-                                              sample_size=sample_size, name='small_treatment_propensity')
+                                              treatment_function, outcome_function,
+                                              sample_size=sample_size, name='overlap_violations')
 
-    def add_full_treatment_effect_generator(self, dimensions: int, sample_size: int = 500):
-        main_effect = lambda x: 3 - (2 * x[0] + x[1])
+    def add_const_treatment_effect_generator(self, dimensions: int, sample_size: int = 500):
+        main_effect = self.main_effect
         treatment_effect = lambda x: 0.5
-        treatment_propensity = lambda x: x[1]
-        noise = lambda: 0.05 * np.random.normal(0, 1)
+        treatment_propensity = self.treatment_propensity
+        noise = self.noise
+        treatment_function = self.treatment_function
+        outcome_function = self.outcome_function
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
+                                              treatment_function, outcome_function,
                                               sample_size=sample_size, name='constant_treatment_effect')
+
+    def add_exponential_outcome_function_generator(self, dimensions: int, sample_size: int = 500):
+        main_effect = self.main_effect
+        treatment_effect = self.treatment_effect
+        treatment_propensity = self.treatment_propensity
+        noise = self.noise
+        treatment_function = self.treatment_function
+        outcome_function = lambda main, treat, treat_eff, noise: np.exp(main + (treat - 0.5) * treat_eff + noise) + noise
+        return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
+                                              treatment_function, outcome_function,
+                                              sample_size=sample_size, name='exponential_outcome')
+
+    def add_sum_of_exponential_outcome_function_generator(self, dimensions: int, sample_size: int = 500):
+        main_effect = self.main_effect
+        treatment_effect = self.treatment_effect
+        treatment_propensity = self.treatment_propensity
+        noise = self.noise
+        treatment_function = self.treatment_function
+        outcome_function = lambda main, treat, treat_eff, noise: np.exp(main) + np.exp((treat - 0.5) * treat_eff) + noise
+        return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
+                                              treatment_function, outcome_function,
+                                              sample_size=sample_size, name='sum_of_exponential_outcome')
+
+    def add_normal_features_generator(self, dimensions: int, sample_size: int = 500):
+        main_effect = self.main_effect
+        treatment_effect = self.treatment_effect
+        treatment_propensity = self.treatment_propensity
+        noise = self.noise
+        treatment_function = self.treatment_function
+        outcome_function = self.outcome_function
+        distribution = [lambda: np.random.normal(0, 1)]
+        return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
+                                              treatment_function, outcome_function, distributions=distribution,
+                                              sample_size=sample_size, name='normal_features_distribution')
+
+    def add_treatment_effect_offset_generator(self, dimensions: int, sample_size: int = 500):
+        main_effect = self.main_effect
+        treatment_effect = lambda x: 10 + self.treatment_effect(x)
+        treatment_propensity = self.treatment_propensity
+        noise = self.noise
+        treatment_function = self.treatment_function
+        outcome_function = self.outcome_function
+        return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
+                                              treatment_function, outcome_function,
+                                              sample_size=sample_size, name='normal_features_distribution')
