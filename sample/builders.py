@@ -12,9 +12,11 @@ class Experiment:
     def __init__(self, seed: int = None):
         self.generators: List[(Generator, int)] = []
         self.models: List[CausalMethod] = []
-        self.metrics: Dict[str, Callable[[List[float]], float]] = {}
+        self.metrics: Dict[str, Callable[[List[float], List[float]], float]] = {}
         self.seed = np.random.seed(seed)
         self._set_defaults()
+        self.trained: bool = False
+        self.count: int = 0
         self.directory = f'experiments/experiment_{seed if seed is not None else f"randomized{self.__hash__()}"}'
         os.makedirs(self.directory, exist_ok=True)
 
@@ -57,6 +59,25 @@ class Experiment:
         columns.insert(0, 'method_name')
         final_result = pd.DataFrame(final_results, columns=columns)
         save_pandas_table(self.directory + '/final_table', final_result)
+        self.trained = True
+        return self
+
+    # For each model run this specific test_set
+    # Compare with given metrics
+    def test_specific_set(self, test_set=pd.DataFrame, truth_set=pd.DataFrame):
+        assert self.trained, "Models are not trained yet. Please make sure you run the full experiment first!"
+        self.count += 1
+        columns = [name for name in self.metrics]
+        columns.insert(0, 'method_name')
+        df = pd.DataFrame([], columns=columns)
+        for model in self.models:
+            predictions = model.estimate_causal_effect(test_set)
+            row = [model.__str__()]
+            for metric in self.metrics.values():
+                score = metric(truth_set.to_numpy(), predictions)
+                row.append(score)
+            df.loc[len(df.index)] = row
+        save_pandas_table(self.directory + f'/table_comparing_specific_value_{self.count}', df)
         return self
 
     # MODELS
