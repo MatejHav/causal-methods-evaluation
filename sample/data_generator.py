@@ -80,9 +80,10 @@ class Generator:
         main_effect = self.main_effect(features)
         noise = self.noise()
         outcome = self.outcome_function(main_effect, treatment, treatment_effect, noise)
-        y0 = self.outcome_function(main_effect, 0, treatment_effect, noise)
-        y1 = self.outcome_function(main_effect, 1, treatment_effect, noise)
-        return features, treatment, outcome, main_effect, treatment_effect, propensity, y0, y1, noise
+        y0 = self.outcome_function(main_effect, 0, treatment_effect, 0)
+        y1 = self.outcome_function(main_effect, 1, treatment_effect, 0)
+        # True treatment effect is y1 - y0 where there is no noise
+        return features, treatment, outcome, main_effect, y1 - y0, propensity, y0, y1, noise
 
     def generate_feature(self, index):
         if len(self.distributions) == 1:
