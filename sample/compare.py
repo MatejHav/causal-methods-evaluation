@@ -1,14 +1,11 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 from typing import *
 from causal_effect_methods import *
 from data_generator import *
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error
-
-import matplotlib.pyplot as plt
-import pandas as pd
-from pandas.plotting import table
+from utils import save_pandas_table
 
 
 def run(methods: Dict[str, CausalMethod],
@@ -31,19 +28,11 @@ def run(methods: Dict[str, CausalMethod],
                             save_table=save_table, dir=dir)
         results.insert(0, method)
         df.loc[len(df.index)] = results
+    df = df.set_index('method_name')
     if save_table:
         save_pandas_table(dir + '/inter_table', df)
     return df
 
-
-def save_pandas_table(dir, df):
-    plt.clf()
-    ax = plt.subplot(111, frame_on=False)
-    ax.xaxis.set_visible(False)
-    ax.yaxis.set_visible(False)
-    table(ax, df)
-    plt.savefig(dir)
-    df.to_csv(dir + '.csv')
 
 
 def run_model(model: CausalMethod, score_functions: List[Callable[[List[float], List[float]], float]],

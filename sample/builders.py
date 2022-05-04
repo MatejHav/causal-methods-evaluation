@@ -9,8 +9,14 @@ from typing import *
 
 class Experiment:
 
-    def __init__(self, seed: int = None):
+    def __init__(self, seed: int = None, name: str = None):
+        self.name = name
         self.reset(seed)
+
+    def __hash__(self):
+        if self.name is not None:
+            return self.name
+        return super().__hash__()
 
     def reset(self, seed: int = None):
         self.results: List[pd.DataFrame] = []
@@ -23,14 +29,16 @@ class Experiment:
         self._set_defaults()
         self.trained: bool = False
         self.count: int = 0
-        self.directory = f'experiments/experiment_{seed if seed is not None else f"randomized{self.__hash__()}"}'
+        self.directory = f'experiments/experiment_{f"seeded_{seed}_{self.__hash__()}" if seed is not None else f"randomized_{self.__hash__()}"}'
         os.makedirs(self.directory, exist_ok=True)
+        return self
 
     def clear(self):
         self.results = []
         self.generators = []
         self._set_defaults()
         self.trained = False
+        return self
 
     def add_custom_generator(self, generator: Generator, sample_size: int = 500):
         self.generators.append((generator, sample_size))
@@ -70,6 +78,7 @@ class Experiment:
         columns = list(metric_dictionary.keys())
         columns.insert(0, 'method_name')
         final_result = pd.DataFrame(final_results, columns=columns)
+        final_result = final_result.set_index('method_name')
         self.results.append(final_result)
         save_pandas_table(self.directory + '/final_table', final_result)
         self.trained = True
@@ -90,6 +99,7 @@ class Experiment:
                 score = metric(truth_set.to_numpy(), predictions)
                 row.append(score)
             df.loc[len(df.index)] = row
+        df = df.set_index('method_name')
         self.results.append(df)
         save_pandas_table(self.directory + f'/table_comparing_specific_value_{self.count}', df)
         return self
