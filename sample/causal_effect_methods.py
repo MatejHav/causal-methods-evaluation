@@ -38,6 +38,10 @@ class CausalMethod(ABC):
         pass
 
     @abstractmethod
+    def reset(self):
+        pass
+
+    @abstractmethod
     def __str__(self):
         pass
 
@@ -48,6 +52,12 @@ class CausalForest(CausalMethod):
         self.forest = EconCausalForest(model_t=method_effect, model_y=method_predict, n_estimators=number_of_trees,
                                        min_samples_leaf=k, criterion='mse', random_state=42, honest=honest)
         self.id = id
+
+    def reset(self):
+        self.forest = EconCausalForest(model_t=self.forest.model_t, model_y=self.forest.model_y,
+                                       n_estimators=self.forest.n_estimators,
+                                       min_samples_leaf=self.forest.min_samples_leaf, criterion=self.forest.criterion,
+                                       random_state=self.forest.random_state, honest=self.forest.honest)
 
     def train(self, x, y, w):
         self.forest.fit(Y=y,
@@ -71,8 +81,13 @@ class DragonNet(CausalMethod):
 
     # Not sure what reg_l2 is but I base it on DragonNet implementation
     def __init__(self, dimensions, reg_l2=0.01, id: int = 0):
+        self.dimensions: int = dimensions
+        self.reg_l2: float = reg_l2
         self.dragonnet = make_dragonnet(dimensions, reg_l2)
         self.id = id
+
+    def reset(self):
+        self.dragonnet = make_dragonnet(self.dimensions, self.reg_l2)
 
     def train(self, x, y, w):
         metrics = [regression_loss, binary_classification_loss, treatment_accuracy, track_epsilon]

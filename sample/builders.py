@@ -10,15 +10,27 @@ from typing import *
 class Experiment:
 
     def __init__(self, seed: int = None):
+        self.reset(seed)
+
+    def reset(self, seed: int = None):
+        self.results: List[pd.DataFrame] = []
         self.generators: List[(Generator, int)] = []
         self.models: List[CausalMethod] = []
         self.metrics: Dict[str, Callable[[List[float], List[float]], float]] = {}
-        self.seed = np.random.seed(seed)
+        if seed is not None:
+            np.random.seed(seed)
+        self.seed = seed
         self._set_defaults()
         self.trained: bool = False
         self.count: int = 0
         self.directory = f'experiments/experiment_{seed if seed is not None else f"randomized{self.__hash__()}"}'
         os.makedirs(self.directory, exist_ok=True)
+
+    def clear(self):
+        self.results = []
+        self.generators = []
+        self._set_defaults()
+        self.trained = False
 
     def add_custom_generator(self, generator: Generator, sample_size: int = 500):
         self.generators.append((generator, sample_size))
@@ -58,6 +70,7 @@ class Experiment:
         columns = list(metric_dictionary.keys())
         columns.insert(0, 'method_name')
         final_result = pd.DataFrame(final_results, columns=columns)
+        self.results.append(final_result)
         save_pandas_table(self.directory + '/final_table', final_result)
         self.trained = True
         return self
@@ -77,6 +90,7 @@ class Experiment:
                 score = metric(truth_set.to_numpy(), predictions)
                 row.append(score)
             df.loc[len(df.index)] = row
+        self.results.append(df)
         save_pandas_table(self.directory + f'/table_comparing_specific_value_{self.count}', df)
         return self
 
@@ -181,4 +195,3 @@ class Experiment:
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, dimensions,
                                               treatment_function, outcome_function,
                                               sample_size=sample_size, name='biased_generator')
-
