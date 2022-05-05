@@ -7,10 +7,35 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 from builders import Experiment
 from session import Session
+from parameterizer import Parameterizer
 
 
 def main():
-    basic_session()
+    parameterize_sample_size()
+
+
+def parameterize_sample_size():
+    dimensions = 5
+    sample_sizes = [{'sample_size': 50},
+                    {'sample_size': 100},
+                    {'sample_size': 250},
+                    {'sample_size': 500},
+                    {'sample_size': 750},
+                    {'sample_size': 1000},
+                    {'sample_size': 1250},
+                    {'sample_size': 1500},
+                    {'sample_size': 1750},
+                    {'sample_size': 2000}
+                    ]
+    param_function = lambda d: lambda: Experiment() \
+        .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=500) \
+        .add_causal_forest(min_leaf_size=1, number_of_trees=500) \
+        .add_mean_squared_error() \
+        .add_absolute_error() \
+        .add_biased_generator(dimensions=dimensions, sample_size=d['sample_size'])
+    Parameterizer(param_function, sample_sizes).run_specific(
+        pd.DataFrame(np.zeros((40, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
+        pd.DataFrame(np.zeros((40, 1)) + 0.1, columns=['outcome']))
 
 
 def basic_session():

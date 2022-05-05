@@ -3,6 +3,8 @@ import os
 
 import matplotlib.pyplot as plt
 from pandas.plotting import table
+from typing import *
+
 
 class HiddenPrints:
     def __enter__(self):
@@ -13,6 +15,7 @@ class HiddenPrints:
         sys.stdout.close()
         sys.stdout = self._original_stdout
 
+
 def save_pandas_table(dir, df):
     plt.clf()
     ax = plt.subplot(111, frame_on=False)
@@ -21,3 +24,10 @@ def save_pandas_table(dir, df):
     table(ax, df)
     plt.savefig(dir)
     df.to_csv(dir + '.csv')
+
+
+def compact_dict_print(dict: Dict[str, Any]):
+    result = ''
+    for key in dict:
+        result += f'{key}={dict[key]},'.replace(' ', '_').replace(':', '-')
+    return result
