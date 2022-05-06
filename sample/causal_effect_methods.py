@@ -72,7 +72,7 @@ class CausalForest(CausalMethod):
         return outcome
 
     def create_testing_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise):
-        return treatment_effect
+        return y1 - y0
 
     def __str__(self):
         return f'causal_forest_{self.id}'
