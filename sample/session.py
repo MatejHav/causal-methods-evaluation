@@ -16,7 +16,7 @@ class Session:
         self.directory = f'sessions/session_{name}/'
         os.makedirs(self.directory, exist_ok=True)
 
-    def run(self, epochs: int = 50, save_graphs: bool=True):
+    def run(self, epochs: int = 10, save_graphs: bool=True):
         results = None
         model_names = None
         metric_names = None

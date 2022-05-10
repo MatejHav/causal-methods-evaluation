@@ -16,15 +16,17 @@ def run(methods: Dict[str, CausalMethod],
     scoring_list = [score_functions[key] for key in score_functions]
     columns = [key for key in score_functions.keys()]
     columns.insert(0, 'method_name')
-    X, W, y, main_effect, true_effect, propensity, y0, y1, noise = None, None, None, None, None, None, None, None, None
+    X, W, y, main_effect, true_effect, propensity, y0, y1, noise, cate = None, None, None, None, None,\
+                                                                         None, None, None, None, None
     if data_generator is not None:
-        X, W, y, main_effect, true_effect, propensity, y0, y1, noise = load_data_from_generator(data_generator, samples)
+        X, W, y, main_effect, true_effect, propensity, y0, y1, noise, cate = load_data_from_generator(data_generator,
+                                                                                                      samples)
     elif data_file is not None:
-        X, W, y, main_effect, true_effect, propensity, y0, y1, noise = load_data_from_file(data_file)
+        X, W, y, main_effect, true_effect, propensity, y0, y1, noise, cate = load_data_from_file(data_file)
     df = pd.DataFrame([], columns=columns)
     for method in methods:
         model = methods[method]
-        results = run_model(model, scoring_list, X, W, y, main_effect, true_effect, propensity, y0, y1, noise,
+        results = run_model(model, scoring_list, X, W, y, main_effect, true_effect, propensity, y0, y1, noise, cate,
                             save_table=save_table, dir=dir)
         results.insert(0, method)
         df.loc[len(df.index)] = results
@@ -38,7 +40,7 @@ def run(methods: Dict[str, CausalMethod],
 def run_model(model: CausalMethod, score_functions: List[Callable[[List[float], List[float]], float]],
               feature_data: pd.DataFrame, treatment: pd.DataFrame, outcome: pd.DataFrame, main_effect: pd.DataFrame,
               treatment_effect: pd.DataFrame, treatment_propensity: pd.DataFrame,
-              y0: pd.DataFrame, y1: pd.DataFrame, noise: pd.DataFrame,
+              y0: pd.DataFrame, y1: pd.DataFrame, noise: pd.DataFrame, cate: pd.DataFrame,
               save_table=False, dir=''):
     all_data = feature_data.join(treatment)
     all_data = all_data.join(outcome)
@@ -48,19 +50,20 @@ def run_model(model: CausalMethod, score_functions: List[Callable[[List[float], 
     all_data = all_data.join(y0)
     all_data = all_data.join(y1)
     all_data = all_data.join(noise)
+    all_data = all_data.join(cate)
     # Ensure that X_train and X_test hold all values needed
     X_train, X_test, y_train, y_test = train_test_split(all_data,
                                                         model.create_training_truth(outcome, main_effect,
                                                                                     treatment_effect,
                                                                                     treatment_propensity,
-                                                                                    y0, y1, noise),
+                                                                                    y0, y1, noise, cate),
                                                         test_size=0.25, random_state=42)
     # Select only features for training
     model.train(select_features(X_train), y_train, X_train['treatment'])
 
     # Overwrite y_test based on the model prediction expectation
     y_test = model.create_testing_truth(X_test['outcome'], X_test['main_effect'], X_test['treatment_effect'],
-                                        X_test['propensity'], X_test['y0'], X_test['y1'], X_test['noise'])
+                                        X_test['propensity'], X_test['y0'], X_test['y1'], X_test['noise'], X_test['cate'])
 
     # Select only features for testing
     results = model.estimate_causal_effect(select_features(X_test))

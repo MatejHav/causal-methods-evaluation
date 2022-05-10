@@ -13,4 +13,4 @@ def load_data_from_file(csv_file: str):
     df = pd.read_csv(csv_file)
     dimensions = sum([1 for name in df.columns if 'feature' in name])
     return data_generator.select_features(df, dimensions), df['treatment'], df['outcome'], df['main_effect'],\
-           df['treatment_effect'], df['propensity'], df['y0'], df['y1'], df['noise']
+           df['treatment_effect'], df['propensity'], df['y0'], df['y1'], df['noise'], df['cate']

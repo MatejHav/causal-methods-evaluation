@@ -28,6 +28,6 @@ def save_pandas_table(dir, df):
 
 def compact_dict_print(dict: Dict[str, Any]):
     result = ''
-    for key in dict:
-        result += f'{key}={dict[key]},'.replace(' ', '_').replace(':', '-')
+    for index, key in enumerate(dict):
+        result += f'{key}={dict[key]}{"," if index < len(dict) - 1 else  ""}'.replace(' ', '_').replace(':', '-')
     return result

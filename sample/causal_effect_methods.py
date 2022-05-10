@@ -30,11 +30,11 @@ class CausalMethod(ABC):
         pass
 
     @abstractmethod
-    def create_training_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise):
+    def create_training_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise, cate):
         pass
 
     @abstractmethod
-    def create_testing_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise):
+    def create_testing_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise, cate):
         pass
 
     @abstractmethod
@@ -68,11 +68,11 @@ class CausalForest(CausalMethod):
     def estimate_causal_effect(self, x):
         return self.forest.effect(x)
 
-    def create_training_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise):
+    def create_training_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise, cate):
         return outcome
 
-    def create_testing_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise):
-        return y1 - y0
+    def create_testing_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise, cate):
+        return cate
 
     def __str__(self):
         return f'causal_forest_{self.id}'
@@ -129,14 +129,14 @@ class DragonNet(CausalMethod):
         results = self.dragonnet.predict(x)
         return results
 
-    def create_training_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise):
+    def create_training_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise, cate):
         base_truth = pd.DataFrame(y0).join(y1)
         base_truth = base_truth.join(treatment_propensity)
         base_truth = base_truth.join(noise)
         return base_truth
 
-    def create_testing_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise):
-        return self.create_training_truth(outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise)
+    def create_testing_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise, cate):
+        return self.create_training_truth(outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise, cate)
 
     def __str__(self):
         return f'dragonnet_{self.id}'

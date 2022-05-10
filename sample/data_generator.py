@@ -15,6 +15,7 @@ class Generator:
                  treatment_effect: Callable[[List[float]], float],
                  treatment_propensity: Callable[[List[float]], float],
                  noise: Callable[[], float],
+                 cate: Callable[[List[float]], float],
                  treatment_function: Callable[[float, float], float],
                  outcome_function: Callable[[float, float, float, float], float],
                  dimensions: int, distributions: [Callable[[], float]], name: str = None):
@@ -28,6 +29,7 @@ class Generator:
         self.treatment_function = treatment_function
         self.outcome_function = outcome_function
         self.noise = noise
+        self.cate = cate
         self.dimensions = dimensions
         self.distributions = distributions
         self.directory: str = f'data/data_dump_{name}'
@@ -44,9 +46,10 @@ class Generator:
         columns.append('y0')
         columns.append('y1')
         columns.append('noise')
+        columns.append('cate')
         df = pd.DataFrame([], columns=columns)
         for i in range(number_of_samples):
-            features, treatment, outcome, main_effect, treatment_effect, propensity, y0, y1, noise = self.generate_row()
+            features, treatment, outcome, main_effect, treatment_effect, propensity, y0, y1, noise, cate = self.generate_row()
             features.append(treatment)
             features.append(outcome)
             features.append(main_effect)
@@ -55,6 +58,7 @@ class Generator:
             features.append(y0)
             features.append(y1)
             features.append(noise)
+            features.append(cate)
             df.loc[len(df.index)] = features
         if save_data:
             self.save_data(df)
@@ -65,25 +69,26 @@ class Generator:
             if show_graphs:
                 plt.show()
         return select_features(df, self.dimensions), df['treatment'], df['outcome'], df['main_effect'], \
-               df['treatment_effect'], df['propensity'], df['y0'], df['y1'], df['noise']
+               df['treatment_effect'], df['propensity'], df['y0'], df['y1'], df['noise'], df['cate']
 
     def generate_row(self):
         features = []
         for dimension in range(self.dimensions):
             features.append(self.generate_feature(dimension))
-        # W = bernoulli(e(x))
+        # propensity = p(T = 1 | X)
         propensity = self.treatment_propensity(features)
         treatment_noise = self.noise()
         treatment = self.treatment_function(propensity, treatment_noise)
         treatment_effect = self.treatment_effect(features)
-        # Y = m(x) + (W - 0.5) * t(x) + noise
         main_effect = self.main_effect(features)
         noise = self.noise()
         outcome = self.outcome_function(main_effect, treatment, treatment_effect, noise)
         y0 = self.outcome_function(main_effect, 0, treatment_effect, 0)
         y1 = self.outcome_function(main_effect, 1, treatment_effect, 0)
+        # Cate : E[Y|X]
+        cate = self.cate(features)
         # True treatment effect is y1 - y0 where there is no noise
-        return features, treatment, outcome, main_effect, y1 - y0, propensity, y0, y1, noise
+        return features, treatment, outcome, main_effect, y1 - y0, propensity, y0, y1, noise, cate
 
     def generate_feature(self, index):
         if len(self.distributions) == 1:

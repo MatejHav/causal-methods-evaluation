@@ -1,6 +1,7 @@
 import os
 import pandas as pd
 import numpy as np
+import time
 
 # Disable TesnorFlow warnings
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -11,7 +12,10 @@ from parameterizer import Parameterizer
 
 
 def main():
-    parameterize_sample_size_general()
+    t = time.time_ns()
+    print('STARTING...')
+    basic_experiment()
+    print(f'FINISHED IN {(time.time_ns() - t) * 10e-9} SECONDS.')
 
 
 def parameterize_sample_size_biased():
@@ -34,8 +38,8 @@ def parameterize_sample_size_biased():
         .add_absolute_error() \
         .add_biased_generator(dimensions=dimensions, sample_size=d['sample_size'])
     Parameterizer(param_function, sample_sizes).run_specific(
-        pd.DataFrame(np.zeros((40, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
-        pd.DataFrame(np.zeros((40, 1)) + 0.1, columns=['outcome']))
+        pd.DataFrame(np.zeros((1, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
+        pd.DataFrame(np.zeros((1, 1)) + 0.1, columns=['outcome']))
 
 
 def parameterize_sample_size_general():
@@ -118,17 +122,16 @@ def basic_session():
 
 def basic_experiment():
     dimensions = 5
-    sample_size = 3000
+    sample_size = 1000
     Experiment() \
         .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=500) \
         .add_causal_forest(min_leaf_size=1, number_of_trees=500) \
         .add_mean_squared_error() \
         .add_absolute_error() \
-        .add_biased_generator(dimensions, sample_size=sample_size) \
+        .add_biased_generator(dimensions=dimensions, sample_size=sample_size) \
+        .add_all_effects_generator(dimensions=dimensions, sample_size=sample_size) \
+        .add_no_treatment_effect_generator(dimensions=dimensions, sample_size=sample_size)\
         .run(save_data=True, save_graphs=True, show_graphs=False) \
-        .test_specific_set(
-        pd.DataFrame(np.zeros((40, 5)), columns=['feature_0', 'feature_1', 'feature_2', 'feature_3', 'feature_4']),
-        pd.DataFrame(np.zeros((40, 1)) + 0.1, columns=['outcome']))
 
 
 if __name__ == '__main__':
