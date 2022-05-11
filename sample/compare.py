@@ -1,11 +1,7 @@
-import numpy as np
-import pandas as pd
-import matplotlib.pyplot as plt
-from typing import *
 from causal_effect_methods import *
 from data_generator import *
 from sklearn.model_selection import train_test_split
-from utils import save_pandas_table
+from utils import save_pandas_table, generate_coverage_of_model_graph
 
 
 def run(methods: Dict[str, CausalMethod],
@@ -24,18 +20,19 @@ def run(methods: Dict[str, CausalMethod],
     elif data_file is not None:
         X, W, y, main_effect, true_effect, propensity, y0, y1, noise, cate = load_data_from_file(data_file)
     df = pd.DataFrame([], columns=columns)
+    all_data = X.join([W, y, main_effect, true_effect, propensity, y0, y1, noise, cate])
     for method in methods:
         model = methods[method]
         results = run_model(model, scoring_list, X, W, y, main_effect, true_effect, propensity, y0, y1, noise, cate,
                             save_table=save_table, dir=dir)
         results.insert(0, method)
         df.loc[len(df.index)] = results
+        if save_table:
+            generate_coverage_of_model_graph(model, all_data, dir + f'/model_coverage_{model}.png')
     df = df.set_index('method_name')
     if save_table:
         save_pandas_table(dir + '/inter_table', df)
     return df
-
-
 
 def run_model(model: CausalMethod, score_functions: List[Callable[[List[float], List[float]], float]],
               feature_data: pd.DataFrame, treatment: pd.DataFrame, outcome: pd.DataFrame, main_effect: pd.DataFrame,

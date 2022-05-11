@@ -1,10 +1,6 @@
-import numpy as np
-import pandas as pd
-
-from data_generator import *
-from causal_effect_methods import *
 from compare import *
 from typing import *
+from scipy.stats import multivariate_normal
 
 
 class Experiment:
@@ -67,7 +63,7 @@ class Experiment:
                          data_file=generator.directory + generator.generated_files['data'][-1],
                          samples=sample_size, save_table=save_data,
                          dir=generator.directory).to_numpy()
-            results = results + result[:, 1:]
+            results = results + result
 
         results = results / len(self.generators)
         final_results = []
@@ -198,9 +194,28 @@ class Experiment:
         treatment_propensity = lambda x: 0.5
         noise = lambda : np.random.normal(0, 0.01)
         treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
-        # E[Y1 - Y0 | X] = E[Y1|X] - E[Y0 | X] = 0.1 - 0 = 0.1
         outcome_function = lambda main, treat, treat_eff, noise: 2 * treat * treat_eff + noise
+        # E[Y1 - Y0 | X] = E[Y1|X] - E[Y0 | X] = 0.1 - 0 = 0.1
         cate = lambda x: 0.1
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, cate,
                                               dimensions, treatment_function, outcome_function,
                                               sample_size=sample_size, name='biased_generator')
+
+    def add_spiked_generator(self, dimensions: int, sample_size: int = 500):
+        main_effect = self.main_effect
+        # Spike around (0.5, 0.5) - equally spread through x and y
+        # Very low std means a spike
+        std = 0.01
+        distr = multivariate_normal(cov=np.array([[std, 0], [0, std]]), mean=np.array([0.5, 0.5]),
+                                    seed=42)
+        treatment_effect = lambda x: distr.pdf([x[0], x[1]])
+        # Closer to (0.5, 0.5), higher the chance of being treated
+        treatment_propensity = lambda x: 1 - np.sqrt((x[0] - 0.5)**2 + (x[1] - 0.5)**2)
+        noise = lambda: np.random.normal(0, 0.01)
+        treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
+        outcome_function = lambda main, treat, treat_eff, noise: main + treat * treat_eff + noise
+        # E[Y1 - Y0 | X] = E[Y1 | X] - E[Y0 | X] = 1 * treat_eff = treat_eff(x)
+        cate = lambda x: treatment_effect(x)
+        return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, cate,
+                                              dimensions, treatment_function, outcome_function,
+                                              sample_size=sample_size, name='spiked_generator')

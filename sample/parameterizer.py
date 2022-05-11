@@ -14,11 +14,11 @@ from utils import *
 class Parameterizer:
 
     def __init__(self, parameter_function: Callable[[Dict[str, float]], Callable[[], Experiment]],
-                 params: List[Dict[str, float]]):
+                 params: List[Dict[str, float]], name: str = None):
         self.parameter_function = parameter_function
         self.parameters = params
         os.makedirs('parameterization', exist_ok=True)
-        self.directory = f'parameterization/params_{len([a for a in os.scandir("parameterization")])}'
+        self.directory = f'parameterization/params_{len([a for a in os.scandir("parameterization")]) if name is None else name}'
         os.makedirs(self.directory, exist_ok=True)
 
     def run(self, save_graphs: bool = True):

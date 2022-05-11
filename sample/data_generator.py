@@ -1,9 +1,8 @@
 import os
 import time
-import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from scipy.stats import beta
+from utils import select_features
 from typing import *
 
 class Generator:
@@ -104,10 +103,10 @@ class Generator:
         feature_two = df['feature_1']
         maximal = df['treatment_effect'].max()
         minimal = df['treatment_effect'].min()
-        color_function = lambda i: [1,
+        color_function = lambda i: [0,
                                     min(1,
-                                        1.1 * (df.iloc[i]['treatment_effect'] - minimal) / (maximal - minimal + 0.01)),
-                                    0.95 * (df.iloc[i]['treatment_effect'] - minimal) / (maximal - minimal + 0.01)]
+                                        (df.iloc[i]['treatment_effect'] - minimal) / (maximal - minimal + 0.01)),
+                                    1 - (df.iloc[i]['treatment_effect'] - minimal) / (maximal - minimal + 0.01)]
         plt.scatter(feature_one, feature_two, c=[color_function(i) for i in df.index])
 
     def save_graphs(self):
@@ -122,8 +121,3 @@ class Generator:
         self.generated_files['data'].append(filename)
         df.to_csv(self.directory + filename)
 
-
-def select_features(df, dim=-1):
-    if dim == -1:
-        return df[[name for name in df.columns if 'feature' in name]]
-    return df[[f'feature_{i}' for i in range(dim)]]

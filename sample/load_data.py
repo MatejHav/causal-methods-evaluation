@@ -1,8 +1,5 @@
-import numpy as np
 import pandas as pd
 import data_generator
-from scipy.stats import beta
-from typing import *
 
 
 def load_data_from_generator(generator: data_generator.Generator, samples=500):

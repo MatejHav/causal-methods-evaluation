@@ -37,7 +37,7 @@ class Session:
         save_pandas_table(self.directory + '/results', results)
         return results
 
-    def run_specific(self, test_set=pd.DataFrame, truth_set=pd.DataFrame, epochs: int = 50, save_graphs: bool=True):
+    def run_specific(self, test_set=pd.DataFrame, truth_set=pd.DataFrame, epochs: int = 10, save_graphs: bool=True):
         results = None
         model_names = None
         metric_names = None

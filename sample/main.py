@@ -14,7 +14,7 @@ from parameterizer import Parameterizer
 def main():
     t = time.time_ns()
     print('STARTING...')
-    basic_experiment()
+    spiked_experiment()
     print(f'FINISHED IN {(time.time_ns() - t) * 10e-9} SECONDS.')
 
 
@@ -35,11 +35,11 @@ def parameterize_sample_size_biased():
         .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=500) \
         .add_causal_forest(min_leaf_size=1, number_of_trees=500) \
         .add_mean_squared_error() \
-        .add_absolute_error() \
         .add_biased_generator(dimensions=dimensions, sample_size=d['sample_size'])
-    Parameterizer(param_function, sample_sizes).run_specific(
-        pd.DataFrame(np.zeros((1, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
-        pd.DataFrame(np.zeros((1, 1)) + 0.1, columns=['outcome']))
+    Parameterizer(param_function, sample_sizes, name='sample_size_biased_general').run(save_graphs=True)
+    Parameterizer(param_function, sample_sizes, name='sample_size_biased_specific').run_specific(
+        pd.DataFrame(np.zeros((10, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
+        pd.DataFrame(np.zeros((10, 1)) + 0.1, columns=['outcome']))
 
 
 def parameterize_sample_size_general():
@@ -59,17 +59,13 @@ def parameterize_sample_size_general():
         .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=500) \
         .add_causal_forest(min_leaf_size=1, number_of_trees=500) \
         .add_mean_squared_error() \
-        .add_absolute_error() \
-        .add_all_effects_generator(dimensions=dimensions, sample_size=d['sample_size'])\
-        .add_only_treatment_effect_generator(dimensions=dimensions, sample_size=d['sample_size'])\
-        .add_no_treatment_effect_generator(dimensions=dimensions, sample_size=d['sample_size'])\
-        .add_exponential_outcome_function_generator(dimensions=dimensions, sample_size=d['sample_size'])
-    Parameterizer(param_function, sample_sizes).run()
+        .add_all_effects_generator(dimensions=dimensions, sample_size=d['sample_size'])
+    Parameterizer(param_function, sample_sizes, name='sample_size_normal_general').run(save_graphs=True)
 
 
 def parameterize_number_of_trees():
     dimensions = 5
-    sample_sizes = [{'number_of_trees': 2 ** 4},
+    tree_numbers = [{'number_of_trees': 2 ** 4},
                     {'number_of_trees': 2 ** 6},
                     {'number_of_trees': 2 ** 8},
                     {'number_of_trees': 2 ** 9},
@@ -80,9 +76,9 @@ def parameterize_number_of_trees():
         .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=d['number_of_trees']) \
         .add_causal_forest(min_leaf_size=1, number_of_trees=d['number_of_trees']) \
         .add_mean_squared_error() \
-        .add_absolute_error() \
         .add_biased_generator(dimensions=dimensions, sample_size=500)
-    Parameterizer(param_function, sample_sizes).run_specific(
+    Parameterizer(param_function, tree_numbers, name='number_of_trees_biased_general').run()
+    Parameterizer(param_function, tree_numbers, name='number_of_trees_biased_specific').run_specific(
         pd.DataFrame(np.zeros((40, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
         pd.DataFrame(np.zeros((40, 1)) + 0.1, columns=['outcome']))
 
@@ -100,11 +96,11 @@ def parameterize_leaf_size():
         .add_causal_forest(honest=False, min_leaf_size=d['min_leaf_size'], number_of_trees=500) \
         .add_causal_forest(min_leaf_size=d['min_leaf_size'], number_of_trees=500) \
         .add_mean_squared_error() \
-        .add_absolute_error() \
         .add_biased_generator(dimensions=dimensions, sample_size=500)
-    Parameterizer(param_function, sample_sizes).run_specific(
+    Parameterizer(param_function, sample_sizes, name='leaf_size_biased_general').run(save_graphs=True)
+    Parameterizer(param_function, sample_sizes, name='leaf_size_biased_specific').run_specific(
         pd.DataFrame(np.zeros((40, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
-        pd.DataFrame(np.zeros((40, 1)) + 0.1, columns=['outcome']))
+        pd.DataFrame(np.zeros((40, 1)) + 0.1, columns=['outcome']), save_graphs=True)
 
 
 def basic_session():
@@ -113,7 +109,6 @@ def basic_session():
         .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=500) \
         .add_causal_forest(min_leaf_size=1, number_of_trees=500) \
         .add_mean_squared_error() \
-        .add_absolute_error() \
         .add_biased_generator(dimensions)
     Session(get_experiment, 'basic_session').run_specific(
         pd.DataFrame(np.zeros((40, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
@@ -127,12 +122,20 @@ def basic_experiment():
         .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=500) \
         .add_causal_forest(min_leaf_size=1, number_of_trees=500) \
         .add_mean_squared_error() \
-        .add_absolute_error() \
         .add_biased_generator(dimensions=dimensions, sample_size=sample_size) \
         .add_all_effects_generator(dimensions=dimensions, sample_size=sample_size) \
         .add_no_treatment_effect_generator(dimensions=dimensions, sample_size=sample_size)\
         .run(save_data=True, save_graphs=True, show_graphs=False) \
 
+def spiked_experiment():
+    dimensions = 5
+    sample_size = 5000
+    Experiment() \
+        .add_causal_forest(honest=False, min_leaf_size=10, number_of_trees=500) \
+        .add_causal_forest(min_leaf_size=10, number_of_trees=500) \
+        .add_mean_squared_error() \
+        .add_spiked_generator(dimensions, sample_size) \
+        .run(save_data=True, save_graphs=True, show_graphs=False)
 
 if __name__ == '__main__':
     main()
