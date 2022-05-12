@@ -18,7 +18,6 @@ import os
 import matplotlib.pyplot as plt
 import pandas as pd
 from pandas.plotting import table
-from causal_effect_methods import CausalMethod
 from typing import *
 
 
@@ -59,7 +58,7 @@ def select_features(df: pd.DataFrame, dim: int=-1):
     return df[[f'feature_{i}' for i in range(dim)]]
 
 
-def generate_coverage_of_model_graph(model: CausalMethod, df: pd.DataFrame, save_dir: str):
+def generate_coverage_of_model_graph(model, df: pd.DataFrame, save_dir: str):
     plt.clf()
     feature_one = df['feature_0']
     feature_two = df['feature_1']
