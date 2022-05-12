@@ -1,3 +1,11 @@
+"""
+In this file all the causal machine learning methods should be defined.
+Currently the following Causal methods can be imported from this file:
+    * CausalMethod: abstract class represneting the models used for causal ML
+    * CausalForest: implementation of causal forests using EconML
+    * DragonNet: DragonNet implementation defined by https://github.com/claudiashi57/dragonnet
+"""
+
 import tensorflow as tf
 
 from sample.other_methods.dragonnet.experiment.models import regression_loss, binary_classification_loss, \
@@ -14,29 +22,74 @@ from keras.metrics import *
 
 
 class CausalMethod(ABC):
+    """
+    Abstract class representing all CML models.
+    """
 
     @abstractmethod
     def estimate_causal_effect(self, x):
+        """
+        Estimates the causal effect.
+        :param x: feature vector with all necessary features
+        :return: estimation of the output of the model
+        """
         pass
 
     @abstractmethod
     def train(self, x, y, w):
+        """
+        Method that trains the model with necessary data.
+        :param x: List of feature vectors
+        :param y: List of outcomes
+        :param w: List of treatments
+        """
         pass
 
     @abstractmethod
     def create_training_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise, cate):
+        """
+        Creates the outcomes for training, as some models might require a different training data.
+        :param outcome: outcome Y
+        :param main_effect: effect of X on Y
+        :param treatment_effect: effect of W on Y
+        :param treatment_propensity: effect of X on W
+        :param y0: outcome with no treatment
+        :param y1: outcome with treatment
+        :param noise: noise of the sample
+        :param cate: cate of the sample
+        :return: data used for training
+        """
         pass
 
     @abstractmethod
     def create_testing_truth(self, outcome, main_effect, treatment_effect, treatment_propensity, y0, y1, noise, cate):
+        """
+        Creates the outcomes for testing, as some models might require a different testing data.
+        :param outcome: outcome Y
+        :param main_effect: effect of X on Y
+        :param treatment_effect: effect of W on Y
+        :param treatment_propensity: effect of X on W
+        :param y0: outcome with no treatment
+        :param y1: outcome with treatment
+        :param noise: noise of the sample
+        :param cate: cate of the sample
+        :return: data used for testing
+        """
         pass
 
     @abstractmethod
     def reset(self):
+        """
+        Resets the model to an untrained stage.
+        """
         pass
 
     @abstractmethod
     def __str__(self):
+        """
+        Constructs a string that characterizes the model.
+        :return: string representing the model
+        """
         pass
 
 
