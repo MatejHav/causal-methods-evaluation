@@ -1,12 +1,32 @@
+"""Utils
+
+This file defines some functions useful throughout the entire project that do not fit anywhere else.
+
+This file can also be imported as a module and contains the following
+functions and classes:
+
+    * HiddenPrints - blocks printing
+    * save_pandas_table - function to save a pandas table in a specific directory
+    * compact_dict_print - creates a string defining a dictionary without any illegal characters
+    * select_features - selects only features from a pandas dataframe
+    * generate_coverage_of_model_graph - generates a plot of coverage over first two features based on model outputs
+"""
+
 import sys
 import os
 
 import matplotlib.pyplot as plt
+import pandas as pd
 from pandas.plotting import table
+from causal_effect_methods import CausalMethod
 from typing import *
 
 
 class HiddenPrints:
+    """
+    Class to block printing.
+    Taken from https://stackoverflow.com/questions/8391411/how-to-block-calls-to-print
+    """
     def __enter__(self):
         self._original_stdout = sys.stdout
         sys.stdout = open(os.devnull, 'w')
@@ -16,7 +36,7 @@ class HiddenPrints:
         sys.stdout = self._original_stdout
 
 
-def save_pandas_table(dir, df):
+def save_pandas_table(dir: str, df: pd.DataFrame):
     plt.clf()
     ax = plt.subplot(111, frame_on=False)
     ax.xaxis.set_visible(False)
@@ -29,15 +49,17 @@ def save_pandas_table(dir, df):
 def compact_dict_print(dict: Dict[str, Any]):
     result = ''
     for index, key in enumerate(dict):
-        result += f'{key}={dict[key]}{"," if index < len(dict) - 1 else  ""}'.replace(' ', '_').replace(':', '-')
+        result += f'{key}={dict[key]}{"," if index < len(dict) - 1 else ""}'.replace(' ', '_').replace(':', '-')
     return result
 
-def select_features(df, dim=-1):
+
+def select_features(df: pd.DataFrame, dim: int=-1):
     if dim == -1:
         return df[[name for name in df.columns if 'feature' in name]]
     return df[[f'feature_{i}' for i in range(dim)]]
 
-def generate_coverage_of_model_graph(model, df, save_dir):
+
+def generate_coverage_of_model_graph(model: CausalMethod, df: pd.DataFrame, save_dir: str):
     plt.clf()
     feature_one = df['feature_0']
     feature_two = df['feature_1']

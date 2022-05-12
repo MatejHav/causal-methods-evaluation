@@ -1,9 +1,19 @@
+"""Loading of Data
+
+This file defines functions necessary for loading data.
+
+This file can also be imported as a module and contains the following
+functions:
+
+    * load_data_from_generator : functions that generates data based on the inputs
+    * load_data_from_file : reads a file and loads data from there
+"""
+
 import pandas as pd
 import data_generator
 
-
 def load_data_from_generator(generator: data_generator.Generator, samples=500):
-    return generator.generate_data(500, save_data=True)
+    return generator.generate_data(samples, save_data=True)
 
 
 def load_data_from_file(csv_file: str):
