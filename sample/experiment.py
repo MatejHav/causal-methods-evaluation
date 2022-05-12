@@ -34,9 +34,10 @@ class Experiment:
         self._set_defaults()
         self.trained: bool = False
         self.count: int = 0
-        datetime_str = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
-        seed = f"seeded_{seed}_{self.__hash__()}" if seed is not None else f"randomized_{self.__hash__()}"
-        self.directory = f'experiments/experiment_{datetime_str}_{seed}'
+        seed = f"seeded_{seed}" if seed is not None else f"randomized"
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        hash = f"{self.__hash__()}"
+        self.directory = f'experiments/experiment_{seed}_{datetime_str}_{hash}'
         os.makedirs(self.directory, exist_ok=True)
         return self
 
