@@ -1,6 +1,7 @@
 from compare import *
 from typing import *
 from scipy.stats import multivariate_normal, beta
+from datetime import datetime
 
 
 class Experiment:
@@ -33,7 +34,9 @@ class Experiment:
         self._set_defaults()
         self.trained: bool = False
         self.count: int = 0
-        self.directory = f'experiments/experiment_{f"seeded_{seed}_{self.__hash__()}" if seed is not None else f"randomized_{self.__hash__()}"}'
+        datetime_str = datetime.now().strftime("%Y-%m-%d_%H:%M:%S")
+        seed = f"seeded_{seed}_{self.__hash__()}" if seed is not None else f"randomized_{self.__hash__()}"
+        self.directory = f'experiments/experiment_{datetime_str}_{seed}'
         os.makedirs(self.directory, exist_ok=True)
         return self
 
