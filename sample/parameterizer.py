@@ -6,15 +6,27 @@ import numpy as np
 import pandas as pd
 
 from typing import *
-from builders import Experiment
+from experiment import Experiment
 from session import Session
 from utils import *
 
 
 class Parameterizer:
+    """
+    Tests an experiment with different inputs. All generated data important to this session is stored in the
+    'sample/parameterization' directory.
+    """
 
     def __init__(self, parameter_function: Callable[[Dict[str, float]], Callable[[], Experiment]],
                  params: List[Dict[str, float]], name: str = None):
+        """
+        Initialization of the Parameterizer class
+        :param parameter_function: Function that takes in a dictionary that contains the necessary parameters
+        to test and returns a function that outputs a freshly defined experiment based on the parameters formed in the
+         dictionary
+        :param params: List of dictionaries to apply on parameter_function
+        :param name: name for storing purposes
+        """
         self.parameter_function = parameter_function
         self.parameters = params
         os.makedirs('parameterization', exist_ok=True)
@@ -46,6 +58,10 @@ class Parameterizer:
             self.generate_graphs(res)
 
     def generate_graphs(self, res):
+        """
+        Generates graphs for each parameter that was changed and each metric and model that was tested.
+        :param res: Results from the parameterization
+        """
         plots = {}
         x = {}
         for params, results in res:

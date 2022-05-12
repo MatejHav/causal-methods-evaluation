@@ -5,11 +5,21 @@ import pandas as pd
 from typing import *
 from utils import HiddenPrints, save_pandas_table
 from alive_progress import alive_bar
-from builders import Experiment
+from experiment import Experiment
 
 class Session:
+    """
+    To test a model an experiment is replicated multiple times to get the average performance. This class facilitates
+    that with its run method. It stores the result in the 'sample/sessions' directory.
+    If running in an IDE make sure to turn on emulating console printing for progress bars.
+    """
 
     def __init__(self, experiment: Callable[[], Experiment], name: str = None):
+        """
+        Initialization of the Session class
+        :param experiment: A lambda function that takes to input and generates a freshly defined experiment class
+        :param name: Name of the session for directory storage
+        """
         if name is None:
             name = str(self.__hash__())
         self.experiment_function = experiment
