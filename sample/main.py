@@ -14,8 +14,8 @@ from parameterizer import Parameterizer
 def main():
     t = time.time_ns()
     print('STARTING...')
-    parameterize_specific_spiked_sample_size()
-    print(f'FINISHED IN {(time.time_ns() - t) * 10e-9} SECONDS.')
+    basic_experiment()
+    print(f'FINISHED IN {(time.time_ns() - t) * 1e-9} SECONDS.')
 
 
 def parameterize_sample_size_biased():
@@ -140,14 +140,12 @@ def basic_session():
 
 def basic_experiment():
     dimensions = 5
-    sample_size = 1000
+    sample_size = 50
     Experiment() \
         .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=500) \
         .add_causal_forest(min_leaf_size=1, number_of_trees=500) \
         .add_mean_squared_error() \
         .add_biased_generator(dimensions=dimensions, sample_size=sample_size) \
-        .add_all_effects_generator(dimensions=dimensions, sample_size=sample_size) \
-        .add_no_treatment_effect_generator(dimensions=dimensions, sample_size=sample_size) \
         .run(save_data=True, save_graphs=True, show_graphs=False)
 
 
