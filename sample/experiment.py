@@ -26,6 +26,7 @@ class Experiment:
         """
         self.results: List[pd.DataFrame] = []
         self.generators: List[(Generator, int)] = []
+        self.data_files: List[str] = []
         self.models: List[CausalMethod] = []
         self.metrics: Dict[str, Callable[[List[float], List[float]], float]] = {}
         if seed is not None:
@@ -105,7 +106,14 @@ class Experiment:
                          dir=generator.directory).to_numpy()
             results = results + result
 
-        results = results / len(self.generators)
+        for i, data_file in enumerate(self.data_files):
+            os.makedirs(self.directory + f'/data_{i}')
+            result = run(model_dictionary, metric_dictionary,
+                         data_file=data_file, save_table=save_data,
+                         dir=self.directory + f'/data_{i}').to_numpy()
+            results = results + result
+
+        results = results / (len(self.generators) + len(self.data_files))
         final_results = []
         for index, result in enumerate(results):
             result = list(result)
@@ -268,3 +276,8 @@ class Experiment:
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, cate,
                                               dimensions, treatment_function, outcome_function,
                                               sample_size=sample_size, name='spiked_generator')
+
+    def add_ihdp_npci(self, index : int):
+        assert 1 <= index <= 10, f'IHDP of index {index} cannot be found.'
+        self.data_files.append(f'datasets/ihdp_npci_{index}.csv')
+        return self

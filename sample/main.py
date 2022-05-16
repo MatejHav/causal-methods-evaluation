@@ -14,9 +14,57 @@ from parameterizer import Parameterizer
 def main():
     t = time.time_ns()
     print('STARTING...')
-    basic_experiment()
+    all_ihdp_with_min_leaf_size()
     print(f'FINISHED IN {(time.time_ns() - t) * 1e-9} SECONDS.')
 
+
+def test_ihdp_with_min_leaf_size(index):
+    leaf_size = [{'min_leaf_size': 1},
+                 {'min_leaf_size': 5},
+                 {'min_leaf_size': 10},
+                 {'min_leaf_size': 20},
+                 {'min_leaf_size': 32},
+                 {'min_leaf_size': 50},
+                 {'min_leaf_size': 64},
+                 {'min_leaf_size': 75},
+                 {'min_leaf_size': 85},
+                 {'min_leaf_size': 100}
+                 ]
+    param_function = lambda d: lambda: Experiment() \
+        .add_causal_forest(honest=False, min_leaf_size=d['min_leaf_size'], number_of_trees=500) \
+        .add_causal_forest(min_leaf_size=d['min_leaf_size'], number_of_trees=500) \
+        .add_mean_squared_error() \
+        .add_ihdp_npci(index)
+    Parameterizer(param_function, leaf_size, name=f'leaf_size_ihdp_{index}_general').run(save_graphs=True)
+
+
+def all_ihdp_with_min_leaf_size():
+    leaf_size = [{'min_leaf_size': 1},
+                 {'min_leaf_size': 5},
+                 {'min_leaf_size': 10},
+                 {'min_leaf_size': 20},
+                 {'min_leaf_size': 32},
+                 {'min_leaf_size': 50},
+                 {'min_leaf_size': 64},
+                 {'min_leaf_size': 75},
+                 {'min_leaf_size': 85},
+                 {'min_leaf_size': 100}
+                 ]
+    param_function = lambda d: lambda: Experiment() \
+        .add_causal_forest(honest=False, min_leaf_size=d['min_leaf_size'], number_of_trees=500) \
+        .add_causal_forest(min_leaf_size=d['min_leaf_size'], number_of_trees=500) \
+        .add_mean_squared_error() \
+        .add_ihdp_npci(1) \
+        .add_ihdp_npci(2) \
+        .add_ihdp_npci(3) \
+        .add_ihdp_npci(4) \
+        .add_ihdp_npci(5) \
+        .add_ihdp_npci(6) \
+        .add_ihdp_npci(7) \
+        .add_ihdp_npci(8) \
+        .add_ihdp_npci(9) \
+        .add_ihdp_npci(10)
+    Parameterizer(param_function, leaf_size, name=f'leaf_size_ihdp_all_general').run(save_graphs=True)
 
 def parameterize_sample_size_biased():
     dimensions = 5
