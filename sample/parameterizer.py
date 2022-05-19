@@ -33,13 +33,13 @@ class Parameterizer:
         self.directory = f'parameterization/params_{len([a for a in os.scandir("parameterization")]) if name is None else name}'
         os.makedirs(self.directory, exist_ok=True)
 
-    def run(self, save_graphs: bool = True):
+    def run(self, save_graphs: bool = True, epochs: int = 10):
         res = []
         for param in self.parameters:
             print(f'Testing parameters {compact_dict_print(param)}')
             experiment_function = self.parameter_function(param)
             session = Session(experiment_function, f'session_{compact_dict_print(param)}')
-            results = session.run(save_graphs=save_graphs)
+            results = session.run(save_graphs=save_graphs, epochs=epochs)
             res.append((param, results))
             save_pandas_table(self.directory + f'/table_of_{compact_dict_print(param)}', results)
         if save_graphs:

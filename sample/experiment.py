@@ -156,18 +156,19 @@ class Experiment:
 
     # MODELS
 
-    def add_causal_forest(self, number_of_trees=100, min_leaf_size=10, honest: bool=True):
-        return self.add_custom_model(CausalForest(number_of_trees, k=min_leaf_size, honest=honest, id = len(self.models)))
+    def add_causal_forest(self, number_of_trees=100, min_leaf_size=10, honest: bool = True):
+        return self.add_custom_model(CausalForest(number_of_trees, k=min_leaf_size, honest=honest, id=len(self.models)))
 
     def add_dragonnet(self, dimensions):
-        return self.add_custom_model(DragonNet(dimensions, id = len(self.models)))
+        return self.add_custom_model(DragonNet(dimensions, id=len(self.models)))
 
     # METRICS
 
     def add_mean_squared_error(self):
         return self.add_custom_metric('mean_squared_error',
                                       lambda truth, pred: np.sum(
-                                          [(truth[i] - pred[i]) ** 2 for i in range(len(truth))]) / np.prod(truth.shape))
+                                          [(truth[i] - pred[i]) ** 2 for i in range(len(truth))]) / np.prod(
+                                          truth.shape))
 
     def add_absolute_error(self):
         return self.add_custom_metric('absolute_error',
@@ -198,7 +199,7 @@ class Experiment:
                                   cate: Callable[[List[float]], float], dimensions: int,
                                   treatment_function: Callable[[float, float], float],
                                   outcome_function: Callable[[float, float, float, float], float],
-                                  distributions=None, sample_size: int = 500, name: str=None):
+                                  distributions=None, sample_size: int = 500, name: str = None):
         if distributions is None:
             distributions = [np.random.random]
         generator = data_generator.Generator(main_effect=main_effect, treatment_effect=treatment_effect,
@@ -249,7 +250,7 @@ class Experiment:
         main_effect = lambda x: 0
         treatment_effect = lambda x: 1 if np.random.random() <= 0.05 else 0
         treatment_propensity = lambda x: 0.5
-        noise = lambda : np.random.normal(0, 0.01)
+        noise = lambda: np.random.normal(0, 0.01)
         treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
         outcome_function = lambda main, treat, treat_eff, noise: 2 * treat * treat_eff + noise
         # E[Y1 - Y0 | X] = E[Y1|X] - E[Y0 | X] = 0.1 - 0 = 0.1
@@ -257,6 +258,20 @@ class Experiment:
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, cate,
                                               dimensions, treatment_function, outcome_function,
                                               sample_size=sample_size, name='biased_generator')
+
+    def add_full_biased_generator(self, dimensions: int, sample_size: int = 500):
+        x = lambda : np.random.normal()
+        main_effect = lambda x: sum(x)
+        treatment_effect = lambda x: 1 if np.random.random() <= 0.05 else 0
+        treatment_propensity = lambda x: 0.5
+        noise = lambda: np.random.normal(0, 0.01)
+        treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
+        outcome_function = lambda main, treat, treat_eff, noise: 2 * treat * treat_eff + noise
+        # E[Y1 - Y0 | X] = E[Y1|X] - E[Y0 | X] = 0.1 - 0 = 0.1
+        cate = lambda x: 0.1
+        return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, cate,
+                                              dimensions, treatment_function, outcome_function, distributions=[x],
+                                              sample_size=sample_size, name='full_biased_generator')
 
     def add_spiked_generator(self, dimensions: int, sample_size: int = 500):
         main_effect = self.main_effect
@@ -267,7 +282,7 @@ class Experiment:
                                     seed=42)
         treatment_effect = lambda x: distr.pdf([x[0], x[1]])
         # Closer to (0.5, 0.5), higher the chance of being treated
-        treatment_propensity = lambda x: 1 - np.sqrt((x[0] - 0.5)**2 + (x[1] - 0.5)**2)
+        treatment_propensity = lambda x: 1 - np.sqrt((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2)
         noise = lambda: np.random.normal(0, 0.01)
         treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
         outcome_function = lambda main, treat, treat_eff, noise: main + treat * treat_eff + noise
@@ -277,7 +292,10 @@ class Experiment:
                                               dimensions, treatment_function, outcome_function,
                                               sample_size=sample_size, name='spiked_generator')
 
-    def add_ihdp_npci(self, index : int):
+    def add_ihdp_npci(self, index: int):
         assert 1 <= index <= 10, f'IHDP of index {index} cannot be found.'
-        self.data_files.append(f'datasets/ihdp_npci_{index}.csv')
+        self.data_files.append(f'datasets/ihdp/ihdp_npci_{index}.csv')
         return self
+
+    def add_twins(self):
+        self.data_files.append('datasets/twins/')

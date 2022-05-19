@@ -14,7 +14,8 @@ from parameterizer import Parameterizer
 def main():
     t = time.time_ns()
     print('STARTING...')
-    all_ihdp_with_min_leaf_size()
+    parameterize_sample_size_biased()
+    parameterize_leaf_size()
     print(f'FINISHED IN {(time.time_ns() - t) * 1e-9} SECONDS.')
 
 
@@ -35,7 +36,7 @@ def test_ihdp_with_min_leaf_size(index):
         .add_causal_forest(min_leaf_size=d['min_leaf_size'], number_of_trees=500) \
         .add_mean_squared_error() \
         .add_ihdp_npci(index)
-    Parameterizer(param_function, leaf_size, name=f'leaf_size_ihdp_{index}_general').run(save_graphs=True)
+    Parameterizer(param_function, leaf_size, name=f'leaf_size_ihdp_{index}_general').run(save_graphs=True, epochs=1)
 
 
 def all_ihdp_with_min_leaf_size():
@@ -83,7 +84,7 @@ def parameterize_sample_size_biased():
         .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=500) \
         .add_causal_forest(min_leaf_size=1, number_of_trees=500) \
         .add_mean_squared_error() \
-        .add_biased_generator(dimensions=dimensions, sample_size=d['sample_size'])
+        .add_full_biased_generator(dimensions=dimensions, sample_size=d['sample_size'])
     Parameterizer(param_function, sample_sizes, name='sample_size_biased_general').run(save_graphs=True)
     Parameterizer(param_function, sample_sizes, name='sample_size_biased_specific').run_specific(
         pd.DataFrame(np.zeros((10, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
@@ -124,7 +125,7 @@ def parameterize_number_of_trees():
         .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=d['number_of_trees']) \
         .add_causal_forest(min_leaf_size=1, number_of_trees=d['number_of_trees']) \
         .add_mean_squared_error() \
-        .add_biased_generator(dimensions=dimensions, sample_size=500)
+        .add_full_biased_generator(dimensions=dimensions, sample_size=500)
     Parameterizer(param_function, tree_numbers, name='number_of_trees_biased_general').run()
     Parameterizer(param_function, tree_numbers, name='number_of_trees_biased_specific').run_specific(
         pd.DataFrame(np.zeros((40, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
@@ -144,7 +145,7 @@ def parameterize_leaf_size():
         .add_causal_forest(honest=False, min_leaf_size=d['min_leaf_size'], number_of_trees=500) \
         .add_causal_forest(min_leaf_size=d['min_leaf_size'], number_of_trees=500) \
         .add_mean_squared_error() \
-        .add_biased_generator(dimensions=dimensions, sample_size=500)
+        .add_full_biased_generator(dimensions=dimensions, sample_size=500)
     Parameterizer(param_function, leaf_size, name='leaf_size_biased_general').run(save_graphs=True)
     Parameterizer(param_function, leaf_size, name='leaf_size_biased_specific').run_specific(
         pd.DataFrame(np.zeros((40, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
