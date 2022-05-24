@@ -165,13 +165,13 @@ class Experiment:
     # METRICS
 
     def add_mean_squared_error(self):
-        return self.add_custom_metric('mean_squared_error',
+        return self.add_custom_metric('MSE',
                                       lambda truth, pred: np.sum(
                                           [(truth[i] - pred[i]) ** 2 for i in range(len(truth))]) / np.prod(
                                           truth.shape))
 
     def add_absolute_error(self):
-        return self.add_custom_metric('absolute_error',
+        return self.add_custom_metric('MAE',
                                       lambda truth, pred: np.sum(
                                           [abs(truth[i] - pred[i]) for i in range(len(truth))]) / np.prod(truth.shape))
 
@@ -260,17 +260,24 @@ class Experiment:
                                               sample_size=sample_size, name='biased_generator')
 
     def add_full_biased_generator(self, dimensions: int, sample_size: int = 500):
-        x = lambda : np.random.normal()
+        """
+        X ~ U(0, 1)
+        X -sum(X)-> Y
+        X -sum(X)/len(X)-> W
+        W -Ber(0.05)-> Y
+        Y = 2 * W * W_E
+        CATE = 2 * 1 * 0.05 = 0.1
+        """
         main_effect = lambda x: sum(x)
         treatment_effect = lambda x: 1 if np.random.random() <= 0.05 else 0
-        treatment_propensity = lambda x: 0.5
+        treatment_propensity = lambda x: sum(x) / len(x)
         noise = lambda: np.random.normal(0, 0.01)
         treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
         outcome_function = lambda main, treat, treat_eff, noise: 2 * treat * treat_eff + noise
         # E[Y1 - Y0 | X] = E[Y1|X] - E[Y0 | X] = 0.1 - 0 = 0.1
         cate = lambda x: 0.1
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, cate,
-                                              dimensions, treatment_function, outcome_function, distributions=[x],
+                                              dimensions, treatment_function, outcome_function,
                                               sample_size=sample_size, name='full_biased_generator')
 
     def add_spiked_generator(self, dimensions: int, sample_size: int = 500):

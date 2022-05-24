@@ -96,6 +96,7 @@ class CausalMethod(ABC):
 class CausalForest(CausalMethod):
 
     def __init__(self, number_of_trees, method_effect='auto', method_predict='auto', k=1, honest:bool = True, id: int = 0):
+        self.honest = honest
         self.forest = EconCausalForest(model_t=method_effect, model_y=method_predict, n_estimators=number_of_trees,
                                        min_samples_leaf=k, criterion='mse', random_state=42, honest=honest)
         self.id = id
@@ -122,7 +123,7 @@ class CausalForest(CausalMethod):
         return cate
 
     def __str__(self):
-        return f'causal_forest_{self.id}'
+        return f'{"Honest" if self.honest else "Regular"} Causal Forest'
 
 class DragonNet(CausalMethod):
 

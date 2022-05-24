@@ -28,6 +28,7 @@ class Session:
 
     def run(self, epochs: int = 10, save_graphs: bool=True):
         results = None
+        variance_results = []
         model_names = None
         metric_names = None
         with alive_bar(epochs) as bar:
@@ -41,14 +42,16 @@ class Session:
                 if results is None:
                     results = np.zeros((len(experiment.models), len(experiment.metrics)))
                 results = results + experiment.results[-1].to_numpy()
+                variance_results.append(experiment.results[-1])
                 bar()
         results = results / epochs
         results = pd.DataFrame(results, columns=metric_names, index=model_names)
         save_pandas_table(self.directory + '/results', results)
-        return results
+        return results, variance_results
 
     def run_specific(self, test_set=pd.DataFrame, truth_set=pd.DataFrame, epochs: int = 10, save_graphs: bool=True):
         results = None
+        variance_results = []
         model_names = None
         metric_names = None
         with alive_bar(epochs) as bar:
@@ -63,9 +66,10 @@ class Session:
                 if results is None:
                     results = np.zeros((len(experiment.models), len(experiment.metrics)))
                 results = results + experiment.results[-1].to_numpy()
+                variance_results.append(experiment.results[-1])
                 bar()
         results = results / epochs
         results = pd.DataFrame(results, columns=metric_names, index=model_names)
         save_pandas_table(self.directory + '/results', results)
-        return results
+        return results, variance_results
 

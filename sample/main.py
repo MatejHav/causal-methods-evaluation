@@ -14,8 +14,7 @@ from parameterizer import Parameterizer
 def main():
     t = time.time_ns()
     print('STARTING...')
-    parameterize_sample_size_biased()
-    parameterize_leaf_size()
+    parameterize_number_of_trees()
     print(f'FINISHED IN {(time.time_ns() - t) * 1e-9} SECONDS.')
 
 
@@ -126,10 +125,10 @@ def parameterize_number_of_trees():
         .add_causal_forest(min_leaf_size=1, number_of_trees=d['number_of_trees']) \
         .add_mean_squared_error() \
         .add_full_biased_generator(dimensions=dimensions, sample_size=500)
-    Parameterizer(param_function, tree_numbers, name='number_of_trees_biased_general').run()
+    Parameterizer(param_function, tree_numbers, name='number_of_trees_biased_general').run(epochs=50)
     Parameterizer(param_function, tree_numbers, name='number_of_trees_biased_specific').run_specific(
         pd.DataFrame(np.zeros((40, 5)), columns=[f'feature_{i}' for i in range(dimensions)]),
-        pd.DataFrame(np.zeros((40, 1)) + 0.1, columns=['outcome']))
+        pd.DataFrame(np.zeros((40, 1)) + 0.1, columns=['outcome']), epochs=50)
 
 
 def parameterize_leaf_size():
