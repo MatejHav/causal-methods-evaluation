@@ -124,7 +124,8 @@ class Experiment:
         final_result = pd.DataFrame(final_results, columns=columns)
         final_result = final_result.set_index('method_name')
         self.results.append(final_result)
-        save_pandas_table(self.directory + '/final_table', final_result)
+        if save_graphs:
+            save_pandas_table(self.directory + '/final_table', final_result)
         self.trained = True
         return self
 
@@ -299,9 +300,8 @@ class Experiment:
                                               dimensions, treatment_function, outcome_function,
                                               sample_size=sample_size, name='spiked_generator')
 
-    def add_ihdp_npci(self, index: int):
-        assert 1 <= index <= 10, f'IHDP of index {index} cannot be found.'
-        self.data_files.append(f'datasets/ihdp/ihdp_npci_{index}.csv')
+    def add_ihdp_npci(self):
+        self.data_files.append(f'datasets/ihdp/ihdp_npci_1-1000.train.npz')
         return self
 
     def add_twins(self):

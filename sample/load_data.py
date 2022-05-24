@@ -19,24 +19,33 @@ def load_data_from_generator(generator: data_generator.Generator, samples=500):
 
 def load_data_from_file(csv_file: str):
     if 'ihdp' in csv_file:
-        return load_ihdp(csv_file)
+        return load_ihdp()
     df = pd.read_csv(csv_file)
     dimensions = sum([1 for name in df.columns if 'feature' in name])
     return data_generator.select_features(df, dimensions), df['treatment'], df['outcome'], df['main_effect'],\
            df['treatment_effect'], df['propensity'], df['y0'], df['y1'], df['noise'], df['cate']
 
 # Taken from https://github.com/AMLab-Amsterdam/CEVAE/tree/master/datasets/IHDP
-def load_ihdp(file: str):
-    array = np.genfromtxt(file, delimiter=',')
-    n = array.shape[0]
-    # columns: treatment, y_factual, y_cfactual, mu0, mu1, x1, …, x25
-    treatment = array[:, 0]
-    y0 = np.array([array[i, 1 if treatment[i] == 0 else 2] for i in range(n)])
-    y1 = np.array([array[i, 1 if treatment[i] == 1 else 2] for i in range(n)])
-    cate = array[:, 4] - array[:, 3]
-    features = pd.DataFrame(array[:, 5:], columns=[f'feature_{i}' for i in range(array.shape[1] - 5)])
+def load_ihdp():
+    index = 42 #np.random.randint(0, 999)
+    train = np.load('datasets/ihdp/ihdp_npci_1-1000.train.npz')
+    test = np.load('datasets/ihdp/ihdp_npci_1-1000.test.npz')
+    n = len(train['x']) + len(test['x'])
+    # columns: ['ate', 'mu1', 'mu0', 'yadd', 'yf', 'ycf', 't', 'x', 'ymul']
+    treatment = np.concatenate((train['t'][:, index], test['t'][:, index]))
+    mu1 = np.concatenate((train['mu1'][:, index], test['mu1'][:, index]))
+    mu0 = np.concatenate((train['mu0'][:, index], test['mu0'][:, index]))
+    yf = np.concatenate((train['yf'][:, index], test['yf'][:, index]))
+    ycf = np.concatenate((train['ycf'][:, index], test['ycf'][:, index]))
+    x = np.concatenate((train['x'][:, :, index], test['x'][:, :, index]))
+    train.close()
+    test.close()
+    y0 = np.array([yf[i] if treatment[i] == 0 else ycf[i] for i in range(n)])
+    y1 = np.array([yf[i] if treatment[i] == 1 else ycf[i] for i in range(n)])
+    cate = mu1 - mu0
+    features = pd.DataFrame(x, columns=[f'feature_{i}' for i in range(25)])
     treatment = pd.DataFrame(treatment, columns=['treatment'])
-    outcome = pd.DataFrame(array[:, 1], columns=['outcome'])
+    outcome = pd.DataFrame(yf, columns=['outcome'])
     main_effect = pd.DataFrame(np.zeros((n, 1)), columns=['main_effect'])
     treatment_effect = pd.DataFrame(np.zeros((n, 1)), columns=['treatment_effect'])
     propensity = pd.DataFrame(np.zeros((n, 1)), columns=['propensity'])
