@@ -35,7 +35,7 @@ def test_twins_with_min_leaf_size():
         .add_causal_forest(min_leaf_size=d['min_leaf_size']) \
         .add_mean_squared_error() \
         .add_twins()
-    Parameterizer(param_function, leaf_size, name=f'leaf_size_twins').run(save_graphs=True, epochs=50)
+    Parameterizer(param_function, leaf_size, name=f'leaf_size_twins').run(save_graphs=True, epochs=200)
 
 def test_twins_with_max_depth():
     leaf_size = [{'max_depth': 1},
@@ -51,7 +51,7 @@ def test_twins_with_max_depth():
         .add_causal_forest(max_depth=d['max_depth']) \
         .add_mean_squared_error() \
         .add_twins()
-    Parameterizer(param_function, leaf_size, name=f'max_depth_twins').run(save_graphs=True, epochs=50)
+    Parameterizer(param_function, leaf_size, name=f'max_depth_twins').run(save_graphs=True, epochs=200)
 
 
 def test_ihdp_with_min_leaf_size():

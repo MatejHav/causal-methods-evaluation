@@ -95,7 +95,7 @@ class CausalMethod(ABC):
 
 class CausalForest(CausalMethod):
 
-    def __init__(self, number_of_trees, method_effect='auto', method_predict='auto', k=1, honest:bool = True,
+    def __init__(self, number_of_trees: int=100, method_effect='auto', method_predict='auto', k=1, honest:bool = True,
                  max_depth: int = None, id: int = 0):
         self.honest = honest
         self.forest = EconCausalForest(model_t=method_effect, model_y=method_predict, n_estimators=number_of_trees,

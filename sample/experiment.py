@@ -157,7 +157,7 @@ class Experiment:
 
     # MODELS
 
-    def add_causal_forest(self, number_of_trees=500, min_leaf_size=10, honest: bool = True, max_depth: int = None):
+    def add_causal_forest(self, number_of_trees=100, min_leaf_size=10, honest: bool = True, max_depth: int = None):
         return self.add_custom_model(CausalForest(number_of_trees, k=min_leaf_size, honest=honest, max_depth=max_depth,
                                                   id=len(self.models)))
 
