@@ -96,7 +96,7 @@ def run_model(model: CausalMethod, score_functions: List[Callable[[List[float], 
                                                                                     treatment_effect,
                                                                                     treatment_propensity,
                                                                                     y0, y1, noise, cate),
-                                                        test_size=0.25, random_state=42)
+                                                        test_size=0.25)
     # Select only features for training
     model.train(select_features(X_train), y_train, X_train['treatment'])
 

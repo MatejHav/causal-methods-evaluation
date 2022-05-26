@@ -102,14 +102,14 @@ class Experiment:
             generator.generate_data(sample_size, save_data=save_data, save_graphs=save_graphs, show_graphs=show_graphs)
             result = run(model_dictionary, metric_dictionary,
                          data_file=generator.directory + generator.generated_files['data'][-1],
-                         samples=sample_size, save_table=save_data,
+                         samples=sample_size, save_table=save_graphs,
                          dir=generator.directory).to_numpy()
             results = results + result
 
         for i, data_file in enumerate(self.data_files):
             os.makedirs(self.directory + f'/data_{i}')
             result = run(model_dictionary, metric_dictionary,
-                         data_file=data_file, save_table=save_data,
+                         data_file=data_file, save_table=save_graphs,
                          dir=self.directory + f'/data_{i}').to_numpy()
             results = results + result
 
@@ -124,7 +124,8 @@ class Experiment:
         final_result = pd.DataFrame(final_results, columns=columns)
         final_result = final_result.set_index('method_name')
         self.results.append(final_result)
-        save_pandas_table(self.directory + '/final_table', final_result)
+        if save_graphs:
+            save_pandas_table(self.directory + '/final_table', final_result)
         self.trained = True
         return self
 
@@ -156,21 +157,23 @@ class Experiment:
 
     # MODELS
 
-    def add_causal_forest(self, number_of_trees=100, min_leaf_size=10, honest: bool=True):
-        return self.add_custom_model(CausalForest(number_of_trees, k=min_leaf_size, honest=honest, id = len(self.models)))
+    def add_causal_forest(self, number_of_trees=100, min_leaf_size=10, honest: bool = True, max_depth: int = None):
+        return self.add_custom_model(CausalForest(number_of_trees, k=min_leaf_size, honest=honest, max_depth=max_depth,
+                                                  id=len(self.models)))
 
     def add_dragonnet(self, dimensions):
-        return self.add_custom_model(DragonNet(dimensions, id = len(self.models)))
+        return self.add_custom_model(DragonNet(dimensions, id=len(self.models)))
 
     # METRICS
 
     def add_mean_squared_error(self):
-        return self.add_custom_metric('mean_squared_error',
+        return self.add_custom_metric('MSE',
                                       lambda truth, pred: np.sum(
-                                          [(truth[i] - pred[i]) ** 2 for i in range(len(truth))]) / np.prod(truth.shape))
+                                          [(truth[i] - pred[i]) ** 2 for i in range(len(truth))]) / np.prod(
+                                          truth.shape))
 
     def add_absolute_error(self):
-        return self.add_custom_metric('absolute_error',
+        return self.add_custom_metric('MAE',
                                       lambda truth, pred: np.sum(
                                           [abs(truth[i] - pred[i]) for i in range(len(truth))]) / np.prod(truth.shape))
 
@@ -180,12 +183,12 @@ class Experiment:
         """
         Sets the default functions used throughout the project.
         """
-        self.main_effect = lambda x: 2 * x[0] - 1
+        self.main_effect = lambda x: sum(x)
         self.treatment_effect = lambda x: (1 + 1 / (1 + np.exp(-20 * (x[0] - 1 / 3)))) * (
                 1 + 1 / (1 + np.exp(-20 * (x[1] - 1 / 3))))
         # https://en.wikipedia.org/wiki/Beta_distribution
-        self.treatment_propensity = lambda x: (1 + beta.pdf(x[0], 2, 4)) / 4
-        self.noise = lambda: 0.05 * np.random.normal(0, 1)
+        self.treatment_propensity = lambda x: sum(x) / len(x)
+        self.noise = lambda: np.random.normal(0, 0.05)
         self.treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
         self.outcome_function = lambda main, treat, treat_eff, noise: main + (treat - 0.5) * treat_eff + noise
         # E[Y1 - Y0 | X] = 0.5 * treat_eff(x) + 0.5*treat_eff(x) = treat_eff(x)
@@ -198,7 +201,7 @@ class Experiment:
                                   cate: Callable[[List[float]], float], dimensions: int,
                                   treatment_function: Callable[[float, float], float],
                                   outcome_function: Callable[[float, float, float, float], float],
-                                  distributions=None, sample_size: int = 500, name: str=None):
+                                  distributions=None, sample_size: int = 500, name: str = None):
         if distributions is None:
             distributions = [np.random.random]
         generator = data_generator.Generator(main_effect=main_effect, treatment_effect=treatment_effect,
@@ -249,7 +252,7 @@ class Experiment:
         main_effect = lambda x: 0
         treatment_effect = lambda x: 1 if np.random.random() <= 0.05 else 0
         treatment_propensity = lambda x: 0.5
-        noise = lambda : np.random.normal(0, 0.01)
+        noise = lambda: np.random.normal(0, 0.01)
         treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
         outcome_function = lambda main, treat, treat_eff, noise: 2 * treat * treat_eff + noise
         # E[Y1 - Y0 | X] = E[Y1|X] - E[Y0 | X] = 0.1 - 0 = 0.1
@@ -257,6 +260,27 @@ class Experiment:
         return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, cate,
                                               dimensions, treatment_function, outcome_function,
                                               sample_size=sample_size, name='biased_generator')
+
+    def add_full_biased_generator(self, dimensions: int, sample_size: int = 500):
+        """
+        X ~ U(0, 1)
+        X -sum(X)-> Y
+        X -sum(X)/len(X)-> W
+        W -Ber(0.05)-> Y
+        Y = 2 * W * W_E
+        CATE = 2 * 1 * 0.05 = 0.1
+        """
+        main_effect = lambda x: sum(x)
+        treatment_effect = lambda x: 1 if np.random.random() <= 0.05 else 0
+        treatment_propensity = lambda x: sum(x) / len(x)
+        noise = lambda: np.random.normal(0, 0.01)
+        treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
+        outcome_function = lambda main, treat, treat_eff, noise: 2 * treat * treat_eff + noise
+        # E[Y1 - Y0 | X] = E[Y1|X] - E[Y0 | X] = 0.1 - 0 = 0.1
+        cate = lambda x: 0.1
+        return self.add_custom_generated_data(main_effect, treatment_effect, treatment_propensity, noise, cate,
+                                              dimensions, treatment_function, outcome_function,
+                                              sample_size=sample_size, name='full_biased_generator')
 
     def add_spiked_generator(self, dimensions: int, sample_size: int = 500):
         main_effect = self.main_effect
@@ -267,7 +291,7 @@ class Experiment:
                                     seed=42)
         treatment_effect = lambda x: distr.pdf([x[0], x[1]])
         # Closer to (0.5, 0.5), higher the chance of being treated
-        treatment_propensity = lambda x: 1 - np.sqrt((x[0] - 0.5)**2 + (x[1] - 0.5)**2)
+        treatment_propensity = lambda x: 1 - np.sqrt((x[0] - 0.5) ** 2 + (x[1] - 0.5) ** 2)
         noise = lambda: np.random.normal(0, 0.01)
         treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
         outcome_function = lambda main, treat, treat_eff, noise: main + treat * treat_eff + noise
@@ -277,7 +301,10 @@ class Experiment:
                                               dimensions, treatment_function, outcome_function,
                                               sample_size=sample_size, name='spiked_generator')
 
-    def add_ihdp_npci(self, index : int):
-        assert 1 <= index <= 10, f'IHDP of index {index} cannot be found.'
-        self.data_files.append(f'datasets/ihdp_npci_{index}.csv')
+    def add_ihdp_npci(self):
+        self.data_files.append(f'datasets/ihdp/ihdp_npci_1-1000.train.npz')
+        return self
+
+    def add_twins(self):
+        self.data_files.append('datasets/twins/converted_twins.csv')
         return self
