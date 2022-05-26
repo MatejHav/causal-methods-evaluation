@@ -14,11 +14,12 @@ from parameterizer import Parameterizer
 def main():
     t = time.time_ns()
     print('STARTING...')
-    test_twins_with_max_depth()
+    test_twins_with_min_leaf_size()
     print(f'FINISHED IN {(time.time_ns() - t) * 1e-9} SECONDS.')
 
 
 def test_twins_with_min_leaf_size():
+
     leaf_size = [{'min_leaf_size': 1},
                  {'min_leaf_size': 5},
                  {'min_leaf_size': 10},
