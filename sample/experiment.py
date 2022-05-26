@@ -102,14 +102,14 @@ class Experiment:
             generator.generate_data(sample_size, save_data=save_data, save_graphs=save_graphs, show_graphs=show_graphs)
             result = run(model_dictionary, metric_dictionary,
                          data_file=generator.directory + generator.generated_files['data'][-1],
-                         samples=sample_size, save_table=save_data,
+                         samples=sample_size, save_table=save_graphs,
                          dir=generator.directory).to_numpy()
             results = results + result
 
         for i, data_file in enumerate(self.data_files):
             os.makedirs(self.directory + f'/data_{i}')
             result = run(model_dictionary, metric_dictionary,
-                         data_file=data_file, save_table=save_data,
+                         data_file=data_file, save_table=save_graphs,
                          dir=self.directory + f'/data_{i}').to_numpy()
             results = results + result
 
@@ -157,8 +157,9 @@ class Experiment:
 
     # MODELS
 
-    def add_causal_forest(self, number_of_trees=100, min_leaf_size=10, honest: bool = True):
-        return self.add_custom_model(CausalForest(number_of_trees, k=min_leaf_size, honest=honest, id=len(self.models)))
+    def add_causal_forest(self, number_of_trees=500, min_leaf_size=10, honest: bool = True, max_depth: int = None):
+        return self.add_custom_model(CausalForest(number_of_trees, k=min_leaf_size, honest=honest, max_depth=max_depth,
+                                                  id=len(self.models)))
 
     def add_dragonnet(self, dimensions):
         return self.add_custom_model(DragonNet(dimensions, id=len(self.models)))
@@ -182,12 +183,12 @@ class Experiment:
         """
         Sets the default functions used throughout the project.
         """
-        self.main_effect = lambda x: 2 * x[0] - 1
+        self.main_effect = lambda x: sum(x)
         self.treatment_effect = lambda x: (1 + 1 / (1 + np.exp(-20 * (x[0] - 1 / 3)))) * (
                 1 + 1 / (1 + np.exp(-20 * (x[1] - 1 / 3))))
         # https://en.wikipedia.org/wiki/Beta_distribution
-        self.treatment_propensity = lambda x: (1 + beta.pdf(x[0], 2, 4)) / 4
-        self.noise = lambda: 0.05 * np.random.normal(0, 1)
+        self.treatment_propensity = lambda x: sum(x) / len(x)
+        self.noise = lambda: np.random.normal(0, 0.05)
         self.treatment_function = lambda propensity, noise: 1 if np.random.random() <= propensity else 0
         self.outcome_function = lambda main, treat, treat_eff, noise: main + (treat - 0.5) * treat_eff + noise
         # E[Y1 - Y0 | X] = 0.5 * treat_eff(x) + 0.5*treat_eff(x) = treat_eff(x)
@@ -305,4 +306,5 @@ class Experiment:
         return self
 
     def add_twins(self):
-        self.data_files.append('datasets/twins/')
+        self.data_files.append('datasets/twins/converted_twins.csv')
+        return self

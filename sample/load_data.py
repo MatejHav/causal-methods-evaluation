@@ -27,7 +27,7 @@ def load_data_from_file(csv_file: str):
 
 # Taken from https://github.com/AMLab-Amsterdam/CEVAE/tree/master/datasets/IHDP
 def load_ihdp():
-    index = 42 #np.random.randint(0, 999)
+    index = np.random.randint(0, 999)
     train = np.load('datasets/ihdp/ihdp_npci_1-1000.train.npz')
     test = np.load('datasets/ihdp/ihdp_npci_1-1000.test.npz')
     n = len(train['x']) + len(test['x'])
@@ -55,4 +55,33 @@ def load_ihdp():
     cate = pd.DataFrame(cate, columns=['cate'])
     return features, treatment, outcome, main_effect, treatment_effect, propensity, y0, y1, noise, cate
 
+def convert_twins():
+    table = pd.read_csv('datasets/twins/Twin_Data.csv')
+    columns = [f'feature_{i}' for i in range(30)]
+    columns.append('treatment')
+    columns.append('outcome')
+    columns.append('main_effect')
+    columns.append('treatment_effect')
+    columns.append('propensity')
+    columns.append('y0')
+    columns.append('y1')
+    columns.append('noise')
+    columns.append('cate')
+    result = pd.DataFrame([], columns=columns)
+    for index, row in table.iterrows():
+        print(index)
+        row = row.to_numpy()
+        no = 1 if row[-2] == 9999 else 0
+        yes = 1 if row[-1] == 9999 else 0
+        features = row[:-2]
+        treated = list(features.copy())
+        treated.extend([1, yes, 0, 0, 0, no, yes, 0, yes - no])
+        control = list(features.copy())
+        control.extend([0, no, 0, 0, 0, no, yes, 0, yes - no])
+        result.loc[len(result.index)] = treated
+        result.loc[len(result.index)] = control
+    result.to_csv('datasets/twins/converted_twins.csv')
+
+if __name__ == '__main__':
+    convert_twins()
 

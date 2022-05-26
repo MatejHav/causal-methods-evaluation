@@ -14,8 +14,44 @@ from parameterizer import Parameterizer
 def main():
     t = time.time_ns()
     print('STARTING...')
-    test_ihdp_with_min_leaf_size()
+    test_twins_with_max_depth()
     print(f'FINISHED IN {(time.time_ns() - t) * 1e-9} SECONDS.')
+
+
+def test_twins_with_min_leaf_size():
+    leaf_size = [{'min_leaf_size': 1},
+                 {'min_leaf_size': 5},
+                 {'min_leaf_size': 10},
+                 {'min_leaf_size': 20},
+                 {'min_leaf_size': 32},
+                 {'min_leaf_size': 50},
+                 {'min_leaf_size': 64},
+                 {'min_leaf_size': 75},
+                 {'min_leaf_size': 85},
+                 {'min_leaf_size': 100}
+                 ]
+    param_function = lambda d: lambda: Experiment() \
+        .add_causal_forest(honest=False, min_leaf_size=d['min_leaf_size']) \
+        .add_causal_forest(min_leaf_size=d['min_leaf_size']) \
+        .add_mean_squared_error() \
+        .add_twins()
+    Parameterizer(param_function, leaf_size, name=f'leaf_size_twins').run(save_graphs=True, epochs=50)
+
+def test_twins_with_max_depth():
+    leaf_size = [{'max_depth': 1},
+                 {'max_depth': 2},
+                 {'max_depth': 4},
+                 {'max_depth': 6},
+                 {'max_depth': 8},
+                 {'max_depth': 10},
+                 {'max_depth': None},
+                 ]
+    param_function = lambda d: lambda: Experiment() \
+        .add_causal_forest(honest=False, max_depth=d['max_depth']) \
+        .add_causal_forest(max_depth=d['max_depth']) \
+        .add_mean_squared_error() \
+        .add_twins()
+    Parameterizer(param_function, leaf_size, name=f'max_depth_twins').run(save_graphs=True, epochs=50)
 
 
 def test_ihdp_with_min_leaf_size():
@@ -36,6 +72,25 @@ def test_ihdp_with_min_leaf_size():
         .add_mean_squared_error() \
         .add_ihdp_npci()
     Parameterizer(param_function, leaf_size, name=f'leaf_size_ihdp_general').run(save_graphs=True, epochs=50)
+
+def test_ihdp_with_min_leaf_size_with_precise_depth():
+    leaf_size = [{'min_leaf_size': 1, 'max_depth': 4},
+                 {'min_leaf_size': 5, 'max_depth': 3},
+                 {'min_leaf_size': 10, 'max_depth': 3},
+                 {'min_leaf_size': 20, 'max_depth': 3},
+                 {'min_leaf_size': 32, 'max_depth': 2},
+                 {'min_leaf_size': 50, 'max_depth': 2},
+                 {'min_leaf_size': 64, 'max_depth': 2},
+                 {'min_leaf_size': 75, 'max_depth': 1},
+                 {'min_leaf_size': 85, 'max_depth': 1},
+                 {'min_leaf_size': 100, 'max_depth': 1}
+                 ]
+    param_function = lambda d: lambda: Experiment() \
+        .add_causal_forest(honest=False, min_leaf_size=d['min_leaf_size'], number_of_trees=500, max_depth=d['max_depth']) \
+        .add_causal_forest(min_leaf_size=d['min_leaf_size'], number_of_trees=500, max_depth=d['max_depth']) \
+        .add_mean_squared_error() \
+        .add_ihdp_npci()
+    Parameterizer(param_function, leaf_size, name=f'max_depth_leaf_size_ihdp_general').run(save_graphs=True, epochs=50)
 
 def parameterize_sample_size_biased():
     dimensions = 5
@@ -75,11 +130,11 @@ def parameterize_sample_size_general():
                     {'sample_size': 2000}
                     ]
     param_function = lambda d: lambda: Experiment() \
-        .add_causal_forest(honest=False, min_leaf_size=1, number_of_trees=500) \
-        .add_causal_forest(min_leaf_size=1, number_of_trees=500) \
+        .add_causal_forest(honest=False, number_of_trees=500) \
+        .add_causal_forest(number_of_trees=500) \
         .add_mean_squared_error() \
         .add_all_effects_generator(dimensions=dimensions, sample_size=d['sample_size'])
-    Parameterizer(param_function, sample_sizes, name='sample_size_normal_general').run(save_graphs=True)
+    Parameterizer(param_function, sample_sizes, name='sample_size_normal_general').run(save_graphs=True, epochs=50)
 
 
 def parameterize_number_of_trees():

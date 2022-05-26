@@ -95,10 +95,12 @@ class CausalMethod(ABC):
 
 class CausalForest(CausalMethod):
 
-    def __init__(self, number_of_trees, method_effect='auto', method_predict='auto', k=1, honest:bool = True, id: int = 0):
+    def __init__(self, number_of_trees, method_effect='auto', method_predict='auto', k=1, honest:bool = True,
+                 max_depth: int = None, id: int = 0):
         self.honest = honest
         self.forest = EconCausalForest(model_t=method_effect, model_y=method_predict, n_estimators=number_of_trees,
-                                       min_samples_leaf=k, criterion='mse', random_state=42, honest=honest)
+                                       min_samples_leaf=k, criterion='mse', random_state=42,
+                                       honest=honest, max_depth=max_depth)
         self.id = id
 
     def reset(self):
