@@ -55,7 +55,7 @@ class Session:
         # Create 6 threads eah having epoch // 6 experiments
         number_of_threads = 6
         for i in range(number_of_threads):
-            experiments = [self.experiment_function() for _ in range(number_of_threads)]
+            experiments = [self.experiment_function() for _ in range(epochs // number_of_threads)]
             if model_names is None and metric_names is None:
                 model_names = [str(model) for model in experiments[0].models]
                 metric_names = list(experiments[0].metrics.keys())
