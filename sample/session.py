@@ -82,7 +82,7 @@ class Session:
                 if model_names is None and metric_names is None:
                     model_names = [str(model) for model in experiment.models]
                     metric_names = list(experiment.metrics.keys())
-                experiment.run(save_graphs=save_graphs, save_data=False)
+                experiment.run(save_graphs=False, save_data=True)
                 experiment.test_specific_set(test_set, truth_set)
                 if results is None:
                     results = np.zeros((len(experiment.models), len(experiment.metrics)))
