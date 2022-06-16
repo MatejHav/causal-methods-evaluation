@@ -15,20 +15,22 @@ def main():
     t = time.time_ns()
     print('STARTING...')
     # TWINS
+    # test_twins_sample_size()
     # test_twins_with_max_depth()
     # test_twins_with_min_leaf_size()
     # # IHDP
     # test_ihdp_with_min_leaf_size()
     # test_ihdp_with_max_depth()
     # GENERAL
-    parameterize_sample_size_general()
-    parameterize_min_leaf_general()
+    # parameterize_sample_size_general()
+    # parameterize_min_leaf_general()
     # SPIKED
-    parameterize_specific_spiked_sample_size()
-    parameterize_specific_spiked_min_leaf()
+    # parameterize_specific_spiked_sample_size()
+    # parameterize_specific_spiked_min_leaf()
+    parameterize_spiked_max_depth()
     # # BIASED
-    parameterize_sample_size_biased()
-    parameterize_leaf_size()
+    # parameterize_sample_size_biased()
+    # parameterize_leaf_size()
     print(f'FINISHED IN {(time.time_ns() - t) * 1e-9} SECONDS.')
 
 
@@ -67,6 +69,30 @@ def test_twins_with_max_depth():
         .add_mean_squared_error() \
         .add_twins()
     Parameterizer(param_function, leaf_size, name=f'max_depth_twins').run(save_graphs=True, epochs=70)
+
+def test_twins_sample_size():
+    sample_sizes = [{'sample_size': 50},
+                    {'sample_size': 100},
+                    {'sample_size': 250},
+                    {'sample_size': 500},
+                    {'sample_size': 750},
+                    {'sample_size': 1000},
+                    {'sample_size': 1250},
+                    {'sample_size': 1500},
+                    {'sample_size': 1750},
+                    {'sample_size': 2000},
+                    {'sample_size': 3000},
+                    {'sample_size': 5000},
+                    {'sample_size': 8000},
+                    {'sample_size': 15000},
+                    {'sample_size': 22000}
+                    ]
+    param_function = lambda d: lambda: Experiment() \
+        .add_causal_forest(honest=False, number_of_trees=200) \
+        .add_causal_forest(number_of_trees=200) \
+        .add_mean_squared_error() \
+        .add_twins(d['sample_size'])
+    Parameterizer(param_function, sample_sizes, name=f'sample_size_twins').run(save_graphs=True, epochs=200)
 
 
 def test_ihdp_with_min_leaf_size():
@@ -253,6 +279,23 @@ def parameterize_specific_spiked_min_leaf():
         pd.DataFrame(np.ones((40, 5)) / 2, columns=[f'feature_{i}' for i in range(dimensions)]),
         pd.DataFrame(np.zeros((40, 1)) + 15.915494309189528, columns=['outcome']), save_graphs=True, epochs=70)
 
+
+def parameterize_spiked_max_depth():
+    dimensions = 5
+    max_depth = [{'max_depth': 1},
+                 {'max_depth': 2},
+                 {'max_depth': 4},
+                 {'max_depth': 6},
+                 {'max_depth': 8},
+                 {'max_depth': 10},
+                 {'max_depth': None},
+                 ]
+    param_function = lambda d: lambda: Experiment() \
+        .add_causal_forest(honest=False, max_depth=d['max_depth']) \
+        .add_causal_forest(max_depth=d['max_depth']) \
+        .add_mean_squared_error() \
+        .add_spiked_generator(dimensions=dimensions)
+    Parameterizer(param_function, max_depth, name='max_depth_spiked').run(save_graphs=True, epochs=70)
 
 def parameterize_specific_spiked_sample_size():
     dimensions = 5

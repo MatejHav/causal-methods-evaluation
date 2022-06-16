@@ -1,3 +1,5 @@
+import os.path
+
 from compare import *
 from typing import *
 from scipy.stats import multivariate_normal, beta
@@ -305,6 +307,9 @@ class Experiment:
         self.data_files.append(f'datasets/ihdp/ihdp_npci_1-1000.train.npz')
         return self
 
-    def add_twins(self):
-        self.data_files.append('datasets/twins/converted_twins.csv')
+    def add_twins(self, sample_size='all'):
+        path = f'datasets/twins/converted_twins_{sample_size}.csv'
+        if not os.path.exists(path):
+            convert_twins(sample_size)
+        self.data_files.append(path)
         return self

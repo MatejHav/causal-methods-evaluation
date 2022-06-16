@@ -55,7 +55,7 @@ def load_ihdp():
     cate = pd.DataFrame(cate, columns=['cate'])
     return features, treatment, outcome, main_effect, treatment_effect, propensity, y0, y1, noise, cate
 
-def convert_twins():
+def convert_twins(sample_size='all'):
     table = pd.read_csv('datasets/twins/Twin_Data.csv')
     columns = [f'feature_{i}' for i in range(30)]
     columns.append('treatment')
@@ -68,19 +68,23 @@ def convert_twins():
     columns.append('noise')
     columns.append('cate')
     result = pd.DataFrame([], columns=columns)
+    count = 0
     for index, row in table.iterrows():
-        print(index)
-        row = row.to_numpy()
-        no = 1 if row[-2] == 9999 else 0
-        yes = 1 if row[-1] == 9999 else 0
-        features = row[:-2]
-        treated = list(features.copy())
-        treated.extend([1, yes, 0, 0, 0, no, yes, 0, yes - no])
-        control = list(features.copy())
-        control.extend([0, no, 0, 0, 0, no, yes, 0, yes - no])
-        result.loc[len(result.index)] = treated
-        result.loc[len(result.index)] = control
-    result.to_csv('datasets/twins/converted_twins.csv')
+        if sample_size == 'all' or count <= sample_size:
+            row = row.to_numpy()
+            no = 1 if row[-2] == 9999 else 0
+            yes = 1 if row[-1] == 9999 else 0
+            features = row[:-2]
+            treated = list(features.copy())
+            treated.extend([1, yes, 0, 0, 0, no, yes, 0, yes - no])
+            control = list(features.copy())
+            control.extend([0, no, 0, 0, 0, no, yes, 0, yes - no])
+            result.loc[len(result.index)] = treated
+            result.loc[len(result.index)] = control
+            count += 2
+        else:
+            break
+    result.to_csv(f'datasets/twins/converted_twins_{sample_size}.csv')
 
 if __name__ == '__main__':
     convert_twins()
